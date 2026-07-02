@@ -965,14 +965,16 @@ function TeacherBank({
   const [bankSearch, setBankSearch] = useState("");
   const [bankTheme, setBankTheme] = useState("Todos");
   const [bankDifficulty, setBankDifficulty] = useState("Todas");
+  const [expandedQuestionId, setExpandedQuestionId] = useState(null);
 
   const filteredBankQuestions = useMemo(() => {
     const query = normalizeText(bankSearch);
     return questions.filter((question) => {
       const matchesSearch =
         !query ||
-        [question.stem, question.category, question.topic, question.explanation, question.keyPoint]
-          .some((value) => normalizeText(value).includes(query));
+        [question.stem, question.category, question.topic, question.explanation, question.keyPoint].some((value) =>
+          normalizeText(value).includes(query)
+        );
       const matchesTheme = bankTheme === "Todos" || question.category === bankTheme;
       const matchesDifficulty = bankDifficulty === "Todas" || question.difficulty === bankDifficulty;
       return matchesSearch && matchesTheme && matchesDifficulty;
@@ -1050,21 +1052,68 @@ function TeacherBank({
         </details>
         {importMessage && <p className="import-message">{importMessage}</p>}
         <div className="bank-table" aria-label="Banco de preguntas">
-          {filteredBankQuestions.map((question) => (
-            <button
-              className={editingId === question.id ? "bank-row selected" : "bank-row"}
-              key={question.id}
-              onClick={() => editQuestion(question)}
-              type="button"
-            >
-              <span className={`difficulty ${question.difficulty}`}>{difficultyLabels[question.difficulty]}</span>
-              <span className="bank-row-main">
-                <b>{question.stem}</b>
-                <small>{question.category} · {question.topic || "Sin subtema"}</small>
-              </span>
-              <span className="bank-row-edit">Editar</span>
-            </button>
-          ))}
+          <div className="bank-table-head" aria-hidden="true">
+            <span>Nivel</span>
+            <span>Pregunta</span>
+            <span>Tema</span>
+            <span>Respuesta correcta</span>
+            <span>Acciones</span>
+          </div>
+          {filteredBankQuestions.map((question) => {
+            const correctOption = question.options.find((option) => option.isCorrect);
+            const isExpanded = expandedQuestionId === question.id;
+
+            return (
+              <article className={editingId === question.id ? "bank-row selected" : "bank-row"} key={question.id}>
+                <span className="bank-row-level">
+                  <span className={`difficulty ${question.difficulty}`}>{difficultyLabels[question.difficulty]}</span>
+                </span>
+                <span className="bank-row-question">
+                  <b>{question.stem}</b>
+                </span>
+                <span className="bank-row-topic">
+                  <b>{question.category}</b>
+                  <small>{question.topic || "Sin subtema"}</small>
+                </span>
+                <span className="bank-row-answer">{correctOption?.text || "Sin respuesta"}</span>
+                <span className="bank-row-actions">
+                  <button className="secondary" onClick={() => editQuestion(question)} type="button">
+                    Editar
+                  </button>
+                  <button
+                    className="ghost compact"
+                    onClick={() => setExpandedQuestionId((current) => (current === question.id ? null : question.id))}
+                    type="button"
+                  >
+                    {isExpanded ? "Ocultar" : "Ver completa"}
+                  </button>
+                </span>
+                {isExpanded && (
+                  <div className="bank-row-detail">
+                    <p>
+                      <b>Pregunta:</b> {question.stem}
+                    </p>
+                    <p>
+                      <b>Respuesta correcta:</b> {correctOption?.text || "Sin respuesta"}
+                    </p>
+                    <p>
+                      <b>Opciones:</b> {question.options.map((option) => option.text).join(" · ")}
+                    </p>
+                    {question.explanation && (
+                      <p>
+                        <b>Explicación:</b> {question.explanation}
+                      </p>
+                    )}
+                    {question.keyPoint && (
+                      <p>
+                        <b>Idea clave:</b> {question.keyPoint}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </article>
+            );
+          })}
           {!filteredBankQuestions.length && (
             <div className="empty-bank">No hay preguntas que coincidan con los filtros.</div>
           )}
