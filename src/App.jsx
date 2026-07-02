@@ -77,6 +77,18 @@ function App() {
     setAnswers([]);
   }
 
+  function startQuickQuiz() {
+    setCategory("Todas");
+    setDifficulty("Todas");
+    startQuiz(questions);
+  }
+
+  function startDifficultyQuiz(nextDifficulty) {
+    setCategory("Todas");
+    setDifficulty(nextDifficulty);
+    startQuiz(questions.filter((question) => question.difficulty === nextDifficulty));
+  }
+
   function answerQuestion(option) {
     if (!currentQuestion || selectedOptionId) return;
     const correctOption = currentQuestion.options.find((item) => item.isCorrect);
@@ -175,54 +187,78 @@ function App() {
           </nav>
         </section>
         <aside className="status-card">
-          <span>Estado Supabase</span>
-          <strong>{isSupabaseConfigured ? "Configurado" : "Local MVP"}</strong>
-          <p>{questions.length} preguntas en banco local</p>
+          {role === "student" ? (
+            <>
+              <span>Practica inmediata</span>
+              <strong>Ronda express</strong>
+              <p>6-8 preguntas mezcladas para calentar el ojo diagnostico.</p>
+              <button onClick={startQuickQuiz} type="button">
+                Empezar quiz rapido
+              </button>
+            </>
+          ) : (
+            <>
+              <span>Estado Supabase</span>
+              <strong>{isSupabaseConfigured ? "Configurado" : "Local MVP"}</strong>
+              <p>{questions.length} preguntas en banco local</p>
+            </>
+          )}
         </aside>
       </header>
 
-      <section className="toolbar">
-        <label>
-          Categoria
-          <select value={category} onChange={(event) => setCategory(event.target.value)}>
-            {categories.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Dificultad
-          <select value={difficulty} onChange={(event) => setDifficulty(event.target.value)}>
-            <option value="Todas">Todas</option>
-            {Object.entries(difficultyLabels).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button onClick={() => startQuiz()} type="button">
-          Nueva ronda
-        </button>
-        <button className="secondary" disabled={!answers.some((answer) => !answer.isCorrect)} onClick={retryMistakes} type="button">
-          Repasar fallos
-        </button>
-      </section>
-
       {role === "student" && (
-        <QuizPlayer
-          answers={answers}
-          currentAnswer={currentAnswer}
-          currentIndex={currentIndex}
-          currentQuestion={currentQuestion}
-          deck={deck}
-          nextQuestion={nextQuestion}
-          onAnswer={answerQuestion}
-          selectedOptionId={selectedOptionId}
-          stats={stats}
-        />
+        <>
+          <StudentLaunch
+            hasMistakes={answers.some((answer) => !answer.isCorrect)}
+            onDifficultyStart={startDifficultyQuiz}
+            onQuickStart={startQuickQuiz}
+            onRetryMistakes={retryMistakes}
+            questions={questions}
+            stats={stats}
+          />
+
+          <section className="toolbar student-toolbar">
+            <label>
+              Categoria
+              <select value={category} onChange={(event) => setCategory(event.target.value)}>
+                {categories.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Dificultad
+              <select value={difficulty} onChange={(event) => setDifficulty(event.target.value)}>
+                <option value="Todas">Todas</option>
+                {Object.entries(difficultyLabels).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button onClick={() => startQuiz()} type="button">
+              Empezar con filtros
+            </button>
+            <button className="secondary" disabled={!answers.some((answer) => !answer.isCorrect)} onClick={retryMistakes} type="button">
+              Repasar fallos
+            </button>
+          </section>
+
+          <QuizPlayer
+            answers={answers}
+            currentAnswer={currentAnswer}
+            currentIndex={currentIndex}
+            currentQuestion={currentQuestion}
+            deck={deck}
+            nextQuestion={nextQuestion}
+            onAnswer={answerQuestion}
+            selectedOptionId={selectedOptionId}
+            stats={stats}
+          />
+        </>
       )}
 
       {role === "teacher" && (
@@ -241,6 +277,62 @@ function App() {
 
       {role === "supervisor" && <SupervisorDashboard answers={answers} questions={questions} />}
     </main>
+  );
+}
+
+function StudentLaunch({ hasMistakes, onDifficultyStart, onQuickStart, onRetryMistakes, questions, stats }) {
+  const difficultyCounts = useMemo(
+    () =>
+      Object.keys(difficultyLabels).map((difficulty) => ({
+        difficulty,
+        count: questions.filter((question) => question.difficulty === difficulty).length
+      })),
+    [questions]
+  );
+
+  return (
+    <section className="student-launch">
+      <article className="launch-card">
+        <div>
+          <p className="eyebrow">Modo alumno</p>
+          <h2>Entrena el ojo antes del examen.</h2>
+          <p>
+            Rondas cortas con feedback inmediato para reconocer patrones, mecanismos de lesion y claves
+            morfologicas.
+          </p>
+        </div>
+        <div className="launch-actions">
+          <button className="primary-large" onClick={onQuickStart} type="button">
+            Empezar quiz rapido
+          </button>
+          <button className="secondary" disabled={!hasMistakes} onClick={onRetryMistakes} type="button">
+            Repasar fallos
+          </button>
+        </div>
+      </article>
+
+      <aside className="launch-side">
+        <div className="mini-progress">
+          <span>Sesion actual</span>
+          <strong>{stats.precision}%</strong>
+          <p>{stats.answered} respuestas registradas</p>
+        </div>
+        <div className="difficulty-starts">
+          {difficultyCounts.map((item) => (
+            <button
+              className={`difficulty-start ${item.difficulty}`}
+              disabled={!item.count}
+              key={item.difficulty}
+              onClick={() => onDifficultyStart(item.difficulty)}
+              type="button"
+            >
+              <span>{difficultyLabels[item.difficulty]}</span>
+              <b>{item.count} preguntas</b>
+            </button>
+          ))}
+        </div>
+      </aside>
+    </section>
   );
 }
 
@@ -289,9 +381,10 @@ function QuizPlayer({
           <img className="question-image" src={currentQuestion.imageUrl} alt="Imagen de la pregunta" />
         )}
         <div className="answers">
-          {currentQuestion.options.map((option) => {
+          {currentQuestion.options.map((option, index) => {
             const isSelected = selectedOptionId === option.id;
             const shouldReveal = Boolean(selectedOptionId);
+            const letter = String.fromCharCode(65 + index);
             const className = [
               "answer",
               shouldReveal && option.isCorrect ? "correct" : "",
@@ -302,7 +395,8 @@ function QuizPlayer({
 
             return (
               <button className={className} disabled={shouldReveal} key={option.id} onClick={() => onAnswer(option)} type="button">
-                {option.text}
+                <span className="answer-letter">{letter}</span>
+                <span>{option.text}</span>
               </button>
             );
           })}
