@@ -190,6 +190,7 @@ function App() {
   const [deck, setDeck] = useState(() => prepareDeck(seedQuestions, 6));
   const [questionCount, setQuestionCount] = useState(10);
   const [showQuiz, setShowQuiz] = useState(false);
+  const [quizMode, setQuizMode] = useState("practice");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOptionId, setSelectedOptionId] = useState(null);
   const [answers, setAnswers] = useState([]);
@@ -240,15 +241,17 @@ function App() {
   function changeRole(nextRole) {
     setRole(nextRole);
     setShowQuiz(false);
+    setQuizMode("practice");
     setSelectedOptionId(null);
   }
 
-  function startQuiz(source = filteredQuestions) {
+  function startQuiz(source = filteredQuestions, mode = "practice") {
     const nextDeck = prepareDeck(source, questionCount);
     setDeck(nextDeck);
     setCurrentIndex(0);
     setSelectedOptionId(null);
     setAnswers([]);
+    setQuizMode(mode);
     setShowQuiz(true);
   }
 
@@ -266,6 +269,7 @@ function App() {
     setCurrentIndex(0);
     setSelectedOptionId(null);
     setAnswers([]);
+    setQuizMode("practice");
     setShowQuiz(true);
   }
 
@@ -284,7 +288,7 @@ function App() {
   }
 
   function answerQuestion(option) {
-    if (!currentQuestion || selectedOptionId) return;
+    if (!currentQuestion || (quizMode === "practice" && selectedOptionId)) return;
     const correctOption = currentQuestion.options.find((item) => item.isCorrect);
     const nextAnswer = {
       questionId: currentQuestion.id,
@@ -295,9 +299,16 @@ function App() {
       isCorrect: option.isCorrect
     };
 
-    setSelectedOptionId(option.id);
     setAnswers((previous) => [...previous, nextAnswer]);
     setAnswerHistory((previous) => [...previous, nextAnswer]);
+
+    if (quizMode === "exam") {
+      setSelectedOptionId(null);
+      setCurrentIndex((index) => index + 1);
+      return;
+    }
+
+    setSelectedOptionId(option.id);
   }
 
   function nextQuestion() {
@@ -424,6 +435,7 @@ function App() {
               nextQuestion={nextQuestion}
               onAnswer={answerQuestion}
               onExit={() => setShowQuiz(false)}
+              quizMode={quizMode}
               selectedOptionId={selectedOptionId}
               stats={stats}
             />
@@ -436,6 +448,7 @@ function App() {
               onDifficultyStart={startDifficultyQuiz}
               onQuickStart={startSmartSession}
               onRetryMistakes={retryMistakes}
+              onStartExam={() => startQuiz(filteredQuestions, "exam")}
               onStartFiltered={() => startQuiz()}
               questionCount={questionCount}
               questions={questions}
@@ -478,6 +491,7 @@ function StudentLaunch({
   onDifficultyStart,
   onQuickStart,
   onRetryMistakes,
+  onStartExam,
   onStartFiltered,
   questionCount,
   questions,
@@ -620,7 +634,7 @@ function StudentLaunch({
           <button className="start-primary" disabled={!filteredCount} onClick={onStartFiltered} type="button">
             Empezar quiz
           </button>
-          <button className="exam-mode" disabled={!filteredCount} onClick={onStartFiltered} type="button">
+          <button className="exam-mode" disabled={!filteredCount} onClick={onStartExam} type="button">
             Modo examen - sin feedback inmediato
           </button>
         </div>
@@ -681,16 +695,54 @@ function QuizPlayer({
   nextQuestion,
   onAnswer,
   onExit,
+  quizMode,
   selectedOptionId,
   stats
 }) {
+  const isExam = quizMode === "exam";
+
   if (!currentQuestion) {
+    const reviewItems = deck.map((question, index) => {
+      const answer = answers.find((item) => item.questionId === question.id);
+      const selectedOption = question.options.find((option) => option.id === answer?.selectedOptionId);
+      const correctOption = question.options.find((option) => option.isCorrect);
+
+      return { answer, correctOption, index, question, selectedOption };
+    });
+
     return (
-      <section className="panel empty-state">
+      <section className={isExam ? "panel empty-state exam-results" : "panel empty-state"}>
         <h2>Ronda terminada</h2>
         <p>
           Resultado: {stats.correct} de {answers.length}. Precision {stats.precision}%.
         </p>
+        {isExam && (
+          <div className="exam-review">
+            <h3>Revision del examen</h3>
+            {reviewItems.map(({ answer, correctOption, index, question, selectedOption }) => (
+              <article
+                className={answer?.isCorrect ? "review-item correct" : "review-item wrong"}
+                key={question.id}
+              >
+                <div className="review-head">
+                  <span>Pregunta {index + 1}</span>
+                  <b>{answer?.isCorrect ? "Correcta" : "Incorrecta"}</b>
+                </div>
+                <h4>{question.stem}</h4>
+                <p className="review-answer">
+                  <b>Tu respuesta:</b> {selectedOption?.text || "Sin respuesta"}
+                </p>
+                <p className="review-answer">
+                  <b>Respuesta correcta:</b> {correctOption?.text}
+                </p>
+                <p>{question.explanation}</p>
+                <p>
+                  <b>Idea clave:</b> {question.keyPoint}
+                </p>
+              </article>
+            ))}
+          </div>
+        )}
         <button onClick={onExit} type="button">
           Configurar otra ronda
         </button>
@@ -707,6 +759,7 @@ function QuizPlayer({
         <Metric label="Puntuacion" value={stats.correct} />
         <Metric label="Precision" value={`${stats.precision}%`} />
         <Metric label="Contestadas" value={stats.answered} />
+        {isExam && <div className="exam-badge">Modo examen: feedback al final</div>}
         <button className="secondary wide-action" onClick={onExit} type="button">
           Configurar otra ronda
         </button>
@@ -726,7 +779,7 @@ function QuizPlayer({
         <div className="answers">
           {currentQuestion.options.map((option, index) => {
             const isSelected = selectedOptionId === option.id;
-            const shouldReveal = Boolean(selectedOptionId);
+            const shouldReveal = !isExam && Boolean(selectedOptionId);
             const letter = String.fromCharCode(65 + index);
             const className = [
               "answer",
@@ -744,7 +797,7 @@ function QuizPlayer({
             );
           })}
         </div>
-        {currentAnswer && (
+        {!isExam && currentAnswer && (
           <div className="feedback">
             <strong>{currentAnswer.isCorrect ? "Correcto." : "Incorrecto."}</strong>
             <p>{currentQuestion.explanation}</p>
