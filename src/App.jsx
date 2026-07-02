@@ -59,6 +59,115 @@ function getInitialSession() {
   };
 }
 
+function buildLearningProfile(history, questions) {
+  const categoryStats = new Map();
+  const questionStats = new Map();
+
+  questions.forEach((question) => {
+    categoryStats.set(question.category, { attempts: 0, correct: 0, wrong: 0, precision: 100 });
+    questionStats.set(question.id, { attempts: 0, correct: 0, wrong: 0, lastSeen: 0 });
+  });
+
+  history.forEach((answer, index) => {
+    const category = categoryStats.get(answer.category) || { attempts: 0, correct: 0, wrong: 0, precision: 100 };
+    const question = questionStats.get(answer.questionId) || { attempts: 0, correct: 0, wrong: 0, lastSeen: 0 };
+
+    category.attempts += 1;
+    question.attempts += 1;
+    question.lastSeen = index + 1;
+
+    if (answer.isCorrect) {
+      category.correct += 1;
+      question.correct += 1;
+    } else {
+      category.wrong += 1;
+      question.wrong += 1;
+    }
+
+    category.precision = Math.round((category.correct / category.attempts) * 100);
+    categoryStats.set(answer.category, category);
+    questionStats.set(answer.questionId, question);
+  });
+
+  const weakCategories = Array.from(categoryStats.entries())
+    .filter(([, value]) => value.attempts > 0)
+    .sort((a, b) => a[1].precision - b[1].precision || b[1].wrong - a[1].wrong)
+    .map(([category]) => category);
+
+  return { categoryStats, questionStats, weakCategories };
+}
+
+function getDifficultyPlan(history) {
+  if (history.length < 4) return { basic: 3, intermediate: 2, advanced: 1 };
+
+  const correct = history.filter((answer) => answer.isCorrect).length;
+  const precision = Math.round((correct / history.length) * 100);
+
+  if (precision < 55) return { basic: 4, intermediate: 2, advanced: 0 };
+  if (precision < 80) return { basic: 2, intermediate: 3, advanced: 1 };
+  return { basic: 1, intermediate: 3, advanced: 2 };
+}
+
+function selectSmartQuestions(questions, history, count) {
+  const profile = buildLearningProfile(history, questions);
+  const difficultyPlan = getDifficultyPlan(history);
+  const maxPerCategory = Math.max(2, Math.ceil(count / 3));
+  const categoryUsage = new Map();
+  const selected = [];
+
+  const scoredQuestions = questions
+    .map((question) => {
+      const questionStats = profile.questionStats.get(question.id) || { attempts: 0, correct: 0, wrong: 0, lastSeen: 0 };
+      const categoryStats = profile.categoryStats.get(question.category) || { attempts: 0, precision: 100, wrong: 0 };
+      const isWeakCategory = profile.weakCategories.slice(0, 3).includes(question.category);
+      const isNew = questionStats.attempts === 0;
+      const difficultyNeed = difficultyPlan[question.difficulty] || 0;
+      const recencyPenalty = questionStats.lastSeen ? questionStats.lastSeen / Math.max(1, history.length) : 0;
+
+      return {
+        question,
+        score:
+          questionStats.wrong * 6 +
+          (isWeakCategory ? 4 : 0) +
+          (isNew ? 3 : 0) +
+          difficultyNeed * 1.8 +
+          (categoryStats.precision < 70 ? 2 : 0) -
+          questionStats.correct * 0.9 -
+          recencyPenalty
+      };
+    })
+    .sort((a, b) => b.score - a.score);
+
+  scoredQuestions.forEach(({ question }) => {
+    if (selected.length >= count) return;
+    const usedInCategory = categoryUsage.get(question.category) || 0;
+    if (usedInCategory >= maxPerCategory && selected.length < questions.length - 1) return;
+    selected.push(question);
+    categoryUsage.set(question.category, usedInCategory + 1);
+  });
+
+  scoredQuestions.forEach(({ question }) => {
+    if (selected.length >= count) return;
+    if (selected.some((item) => item.id === question.id)) return;
+    selected.push(question);
+  });
+
+  return selected.slice(0, count);
+}
+
+function getSmartSessionSummary(questions, history) {
+  const profile = buildLearningProfile(history, questions);
+  const starterTopics = Array.from(new Set(questions.map((question) => question.category))).slice(0, 3);
+  const weakTopics = profile.weakCategories.length
+    ? profile.weakCategories.slice(0, 3)
+    : starterTopics;
+  const criteria = history.length
+    ? ["Fallos recientes", "Areas debiles", "Dificultad adaptativa", "Preguntas no vistas"]
+    : ["Diagnostico inicial", "Variedad de temas", "Base e intermedia", "Preguntas no vistas"];
+
+  return { criteria, weakTopics };
+}
+
 function App() {
   const [session] = useState(() => getInitialSession());
   const [role, setRole] = useState(session.viewRole);
@@ -71,6 +180,7 @@ function App() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOptionId, setSelectedOptionId] = useState(null);
   const [answers, setAnswers] = useState([]);
+  const [answerHistory, setAnswerHistory] = useState([]);
   const [editorQuestion, setEditorQuestion] = useState(() => cloneQuestion(emptyQuestion));
   const [editingId, setEditingId] = useState(null);
 
@@ -100,6 +210,17 @@ function App() {
     return { correct, precision, answered: answers.length };
   }, [answers]);
 
+  const learningStats = useMemo(() => {
+    const correct = answerHistory.filter((answer) => answer.isCorrect).length;
+    const precision = answerHistory.length ? Math.round((correct / answerHistory.length) * 100) : 0;
+    return { correct, precision, answered: answerHistory.length };
+  }, [answerHistory]);
+
+  const smartSession = useMemo(
+    () => getSmartSessionSummary(questions, answerHistory),
+    [answerHistory, questions]
+  );
+
   const availableRoles = roleAccess[session.userRole];
 
   function changeRole(nextRole) {
@@ -123,6 +244,17 @@ function App() {
     startQuiz(questions);
   }
 
+  function startSmartSession() {
+    const smartDeck = selectSmartQuestions(questions, answerHistory, Math.min(10, questions.length));
+    setCategory("Todas");
+    setDifficulty("Todas");
+    setDeck(smartDeck);
+    setCurrentIndex(0);
+    setSelectedOptionId(null);
+    setAnswers([]);
+    setShowQuiz(true);
+  }
+
   function startDifficultyQuiz(nextDifficulty) {
     setCategory("Todas");
     setDifficulty(nextDifficulty);
@@ -132,18 +264,18 @@ function App() {
   function answerQuestion(option) {
     if (!currentQuestion || selectedOptionId) return;
     const correctOption = currentQuestion.options.find((item) => item.isCorrect);
+    const nextAnswer = {
+      questionId: currentQuestion.id,
+      category: currentQuestion.category,
+      difficulty: currentQuestion.difficulty,
+      selectedOptionId: option.id,
+      correctOptionId: correctOption.id,
+      isCorrect: option.isCorrect
+    };
+
     setSelectedOptionId(option.id);
-    setAnswers((previous) => [
-      ...previous,
-      {
-        questionId: currentQuestion.id,
-        category: currentQuestion.category,
-        difficulty: currentQuestion.difficulty,
-        selectedOptionId: option.id,
-        correctOptionId: correctOption.id,
-        isCorrect: option.isCorrect
-      }
-    ]);
+    setAnswers((previous) => [...previous, nextAnswer]);
+    setAnswerHistory((previous) => [...previous, nextAnswer]);
   }
 
   function nextQuestion() {
@@ -267,7 +399,7 @@ function App() {
             filteredCount={filteredQuestions.length}
             hasMistakes={answers.some((answer) => !answer.isCorrect)}
             onDifficultyStart={startDifficultyQuiz}
-            onQuickStart={startQuickQuiz}
+            onQuickStart={startSmartSession}
             onRetryMistakes={retryMistakes}
             onStartFiltered={() => startQuiz()}
             questionCount={questionCount}
@@ -275,7 +407,8 @@ function App() {
             setCategory={setCategory}
             setDifficulty={setDifficulty}
             setQuestionCount={setQuestionCount}
-            stats={stats}
+            smartSession={smartSession}
+            stats={learningStats}
           />
 
           {showQuiz && (
@@ -328,6 +461,7 @@ function StudentLaunch({
   setCategory,
   setDifficulty,
   setQuestionCount,
+  smartSession,
   stats
 }) {
   const difficultyCounts = useMemo(
@@ -339,7 +473,9 @@ function StudentLaunch({
     [questions]
   );
 
-  const focusTopics = categories.filter((item) => item !== "Todas").slice(0, 5);
+  const focusTopics = smartSession.weakTopics.length
+    ? smartSession.weakTopics
+    : categories.filter((item) => item !== "Todas").slice(0, 3);
   const dailyProgress = Math.min(stats.answered, 20);
 
   return (
@@ -348,11 +484,16 @@ function StudentLaunch({
         <div className="smart-card">
           <div>
             <p className="smart-label">Sesion inteligente</p>
-            <h2>10 preguntas adaptadas a ti</h2>
+            <h2>Hasta 10 preguntas adaptadas a ti</h2>
             <p>Tus puntos mas debiles de hoy:</p>
             <div className="focus-chips">
-              {focusTopics.slice(0, 3).map((topic) => (
+              {focusTopics.map((topic) => (
                 <span key={topic}>{topic}</span>
+              ))}
+            </div>
+            <div className="smart-criteria" aria-label="Criterios de seleccion">
+              {smartSession.criteria.map((criterion) => (
+                <span key={criterion}>{criterion}</span>
               ))}
             </div>
           </div>

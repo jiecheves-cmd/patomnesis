@@ -551,6 +551,23 @@ button.ghost {
   font-weight: 900;
 }
 
+.smart-criteria {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.smart-criteria span {
+  display: inline-flex;
+  padding: 6px 9px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
 .smart-cta {
   width: 100%;
   padding: 16px 18px;
