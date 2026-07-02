@@ -1,5 +1,7 @@
 # Patomnesis
 
+Demo pública inicial para testers.
+
 **Mira, piensa, diagnostica.**
 
 Patomnesis es una app de quiz visual para aprender anatomia patologica con preguntas clasificadas por categoria, sistema y dificultad.
