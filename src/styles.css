@@ -1072,9 +1072,23 @@ button.ghost {
 
 .teacher-layout {
   display: grid;
-  grid-template-columns: minmax(300px, 0.9fr) minmax(380px, 1.1fr);
+  grid-template-columns: minmax(360px, 0.95fr) minmax(460px, 1.05fr);
   gap: 18px;
   align-items: start;
+}
+
+.teacher-toolbar {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(260px, 1.4fr) minmax(190px, 0.8fr) minmax(150px, 0.6fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.teacher-actions {
+  display: flex;
+  gap: 9px;
+  justify-content: flex-end;
 }
 
 .section-heading {
@@ -1087,6 +1101,28 @@ button.ghost {
 .bank-list {
   display: grid;
   gap: 12px;
+  max-height: calc(100vh - 240px);
+  overflow: hidden;
+}
+
+.bank-count {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.import-helper {
+  padding: 0;
+}
+
+.import-helper summary {
+  cursor: pointer;
+  font-weight: 900;
+  color: var(--ink);
+}
+
+.import-helper p {
+  margin: 8px 0 0;
 }
 
 .import-helper,
@@ -1106,26 +1142,84 @@ button.ghost {
   color: var(--ink);
 }
 
-.bank-item {
+.bank-table {
+  display: grid;
+  gap: 8px;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.bank-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  text-align: left;
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 14px;
-  background: #fbfcfe;
+  padding: 12px;
+  background: #fff;
+  color: var(--ink);
+  box-shadow: none;
 }
 
-.bank-item.selected {
-  border-color: rgba(36, 92, 168, 0.45);
-  box-shadow: inset 0 0 0 1px rgba(36, 92, 168, 0.18);
+.bank-row:hover,
+.bank-row:focus-visible {
+  background: #fffaf2;
+  color: var(--ink);
+  border-color: rgba(126, 34, 206, 0.28);
 }
 
-.bank-item h3 {
-  margin: 10px 0 8px;
-  font-size: 1rem;
-  line-height: 1.35;
+.bank-row.selected {
+  border-color: rgba(126, 34, 206, 0.48);
+  box-shadow: inset 0 0 0 1px rgba(126, 34, 206, 0.18);
 }
 
-.bank-item p {
+.bank-row-main {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.bank-row-main b,
+.bank-row-main small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bank-row-main b {
+  font-size: 0.95rem;
+  line-height: 1.25;
+}
+
+.bank-row-main small,
+.bank-row-edit {
   color: var(--muted);
+}
+
+.bank-row-edit {
+  font-weight: 900;
+  font-size: 0.86rem;
+}
+
+.empty-bank {
+  padding: 18px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.editor {
+  position: sticky;
+  top: 16px;
+}
+
+.editor-heading h2 {
+  margin: 0;
 }
 
 .form-grid {
@@ -1137,6 +1231,11 @@ button.ghost {
 
 .wide {
   grid-column: 1 / -1;
+}
+
+.editor-actions {
+  display: flex;
+  justify-content: flex-start;
 }
 
 table {
@@ -1174,8 +1273,25 @@ th {
   .student-dashboard,
   .launch-card,
   .teacher-layout,
+  .teacher-toolbar,
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .teacher-actions {
+    justify-content: stretch;
+  }
+
+  .teacher-actions button {
+    flex: 1;
+  }
+
+  .bank-list {
+    max-height: none;
+  }
+
+  .editor {
+    position: static;
   }
 
   .topbar,

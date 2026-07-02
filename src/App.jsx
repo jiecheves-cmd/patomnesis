@@ -962,20 +962,63 @@ function TeacherBank({
   updateOption
 }) {
   const fileInputRef = useRef(null);
+  const [bankSearch, setBankSearch] = useState("");
+  const [bankTheme, setBankTheme] = useState("Todos");
+  const [bankDifficulty, setBankDifficulty] = useState("Todas");
+
+  const filteredBankQuestions = useMemo(() => {
+    const query = normalizeText(bankSearch);
+    return questions.filter((question) => {
+      const matchesSearch =
+        !query ||
+        [question.stem, question.category, question.topic, question.explanation, question.keyPoint]
+          .some((value) => normalizeText(value).includes(query));
+      const matchesTheme = bankTheme === "Todos" || question.category === bankTheme;
+      const matchesDifficulty = bankDifficulty === "Todas" || question.difficulty === bankDifficulty;
+      return matchesSearch && matchesTheme && matchesDifficulty;
+    });
+  }, [bankDifficulty, bankSearch, bankTheme, questions]);
 
   return (
     <section className="teacher-layout">
-      <aside className="panel bank-list">
-        <div className="section-heading">
-          <h2>Banco profesor</h2>
-          <div className="button-row">
-            <button className="secondary" onClick={() => fileInputRef.current?.click()} type="button">
-              Importar Excel
-            </button>
-            <button className="secondary" onClick={newQuestion} type="button">
-              Nueva
-            </button>
-          </div>
+      <div className="teacher-toolbar panel">
+        <label className="search-field">
+          Buscar
+          <input
+            placeholder="Buscar por enunciado, tema o explicación..."
+            value={bankSearch}
+            onChange={(event) => setBankSearch(event.target.value)}
+          />
+        </label>
+        <label>
+          Tema principal
+          <select value={bankTheme} onChange={(event) => setBankTheme(event.target.value)}>
+            <option value="Todos">Todos</option>
+            {questionThemes.map((theme) => (
+              <option key={theme} value={theme}>
+                {theme}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Dificultad
+          <select value={bankDifficulty} onChange={(event) => setBankDifficulty(event.target.value)}>
+            <option value="Todas">Todas</option>
+            {Object.entries(difficultyLabels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="teacher-actions">
+          <button className="secondary" onClick={() => fileInputRef.current?.click()} type="button">
+            Importar Excel
+          </button>
+          <button onClick={newQuestion} type="button">
+            Nueva pregunta
+          </button>
         </div>
         <input
           accept=".xlsx,.xls,.csv"
@@ -987,32 +1030,56 @@ function TeacherBank({
           ref={fileInputRef}
           type="file"
         />
-        <div className="import-helper">
-          <strong>Columnas Excel:</strong> tema_principal, tema, dificultad, enunciado,
-          respuesta_correcta, distractor_1, distractor_2, distractor_3, explicación, idea_clave.
-        </div>
-        {importMessage && <p className="import-message">{importMessage}</p>}
-        {questions.map((question) => (
-          <article className={editingId === question.id ? "bank-item selected" : "bank-item"} key={question.id}>
-            <span className={`difficulty ${question.difficulty}`}>{difficultyLabels[question.difficulty]}</span>
-            <h3>{question.stem}</h3>
-            <p>
-              {question.category} · {question.topic}
+      </div>
+
+      <aside className="panel bank-list">
+        <div className="section-heading">
+          <div>
+            <h2>Banco de preguntas</h2>
+            <p className="bank-count">
+              {questions.length} preguntas · {filteredBankQuestions.length} visibles
             </p>
-            <div className="button-row">
-              <button className="secondary" onClick={() => editQuestion(question)} type="button">
-                Editar
-              </button>
-              <button className="danger" onClick={() => deleteQuestion(question.id)} type="button">
-                Eliminar
-              </button>
-            </div>
-          </article>
-        ))}
+          </div>
+        </div>
+        <details className="import-helper">
+          <summary>Formato Excel esperado</summary>
+          <p>
+            tema_principal, tema, dificultad, enunciado, respuesta_correcta, distractor_1,
+            distractor_2, distractor_3, explicación, idea_clave.
+          </p>
+        </details>
+        {importMessage && <p className="import-message">{importMessage}</p>}
+        <div className="bank-table" aria-label="Banco de preguntas">
+          {filteredBankQuestions.map((question) => (
+            <button
+              className={editingId === question.id ? "bank-row selected" : "bank-row"}
+              key={question.id}
+              onClick={() => editQuestion(question)}
+              type="button"
+            >
+              <span className={`difficulty ${question.difficulty}`}>{difficultyLabels[question.difficulty]}</span>
+              <span className="bank-row-main">
+                <b>{question.stem}</b>
+                <small>{question.category} · {question.topic || "Sin subtema"}</small>
+              </span>
+              <span className="bank-row-edit">Editar</span>
+            </button>
+          ))}
+          {!filteredBankQuestions.length && (
+            <div className="empty-bank">No hay preguntas que coincidan con los filtros.</div>
+          )}
+        </div>
       </aside>
 
       <article className="panel editor">
-        <h2>{editingId ? "Editar pregunta" : "Nueva pregunta"}</h2>
+        <div className="section-heading editor-heading">
+          <h2>{editingId ? "Editar pregunta" : "Nueva pregunta"}</h2>
+          {editingId && (
+            <button className="danger" onClick={() => deleteQuestion(editingId)} type="button">
+              Eliminar
+            </button>
+          )}
+        </div>
         <div className="form-grid">
           <label>
             Tema principal
@@ -1062,9 +1129,11 @@ function TeacherBank({
             <input value={editorQuestion.keyPoint} onChange={(event) => updateEditorField("keyPoint", event.target.value)} />
           </label>
         </div>
-        <button onClick={saveQuestion} type="button">
-          Guardar pregunta
-        </button>
+        <div className="editor-actions">
+          <button onClick={saveQuestion} type="button">
+            Guardar pregunta
+          </button>
+        </div>
       </article>
     </section>
   );
