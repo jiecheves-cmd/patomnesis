@@ -376,8 +376,8 @@ p {
 }
 
 .brand-mini img {
-  width: 58px;
-  height: 58px;
+  width: 72px;
+  height: 72px;
   object-fit: contain;
   border-radius: 16px;
   box-shadow: 0 10px 24px rgba(16, 33, 43, 0.08);
