@@ -577,13 +577,13 @@ function StudentLaunch({
               onClick={() => setSelectedCategories([])}
               type="button"
             >
-              Todos
+              Todas
             </button>
           </div>
           <div className="topic-chips">
             {categories.map((item) => (
               <button
-                className={allTopicsSelected || selectedCategories.includes(item) ? "active" : ""}
+                className={selectedCategories.includes(item) ? "active" : ""}
                 key={item}
                 onClick={() => toggleCategory(item)}
                 type="button"
@@ -595,7 +595,7 @@ function StudentLaunch({
           <p className="availability">
             {allTopicsSelected
               ? "Todos los temas seleccionados."
-              : `${selectedCategories.length} temas seleccionados.`}
+              : `${selectedCategories.length} temas seleccionados: ${selectedCategories.join(", ")}.`}
           </p>
         </div>
 
