@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { difficultyLabels, questionThemes, roleLabels, seedQuestions } from "./data/questions.js";
 import { isSupabaseConfigured } from "./lib/supabase.js";
 
@@ -57,6 +57,109 @@ const roleAccess = {
   teacher: ["student", "teacher"],
   supervisor: ["student", "teacher", "supervisor"]
 };
+
+const difficultyAliases = {
+  avanzada: "advanced",
+  advanced: "advanced",
+  alta: "advanced",
+  basica: "basic",
+  basic: "basic",
+  baja: "basic",
+  intermedia: "intermediate",
+  intermediate: "intermediate",
+  media: "intermediate"
+};
+
+const importColumnAliases = {
+  category: ["tema_principal", "tema principal", "categoria", "categoría", "category"],
+  system: ["sistema", "system", "organo", "órgano"],
+  topic: ["tema", "subtema", "topic"],
+  difficulty: ["dificultad", "nivel", "difficulty"],
+  stem: ["enunciado", "pregunta", "question", "stem"],
+  imageUrl: ["imagen", "imagen_url", "url_imagen", "image", "image_url", "imageurl"],
+  correct: ["respuesta_correcta", "respuesta correcta", "correcta", "correct", "answer"],
+  distractor1: ["distractor_1", "distractor 1", "opcion_b", "opción_b", "opcion b", "opción b"],
+  distractor2: ["distractor_2", "distractor 2", "opcion_c", "opción_c", "opcion c", "opción c"],
+  distractor3: ["distractor_3", "distractor 3", "opcion_d", "opción_d", "opcion d", "opción d"],
+  explanation: ["explicacion", "explicación", "feedback", "explanation"],
+  keyPoint: ["idea_clave", "idea clave", "clave", "key_point", "keypoint"]
+};
+
+function normalizeText(value) {
+  return String(value || "")
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function normalizeHeader(value) {
+  return normalizeText(value).replace(/[\s-]+/g, "_");
+}
+
+function getImportValue(row, field) {
+  const aliases = importColumnAliases[field].map(normalizeHeader);
+  const match = Object.entries(row).find(([key]) => aliases.includes(normalizeHeader(key)));
+  return match ? String(match[1] || "").trim() : "";
+}
+
+function normalizeDifficulty(value) {
+  return difficultyAliases[normalizeText(value)] || "basic";
+}
+
+function normalizeTheme(value) {
+  const normalized = normalizeText(value);
+  return questionThemes.find((theme) => normalizeText(theme) === normalized) || value || questionThemes[0];
+}
+
+function buildImportedQuestions(rows) {
+  const imported = [];
+  const skipped = [];
+  const timestamp = Date.now();
+
+  rows.forEach((row, index) => {
+    const stem = getImportValue(row, "stem");
+    const correct = getImportValue(row, "correct");
+    const distractors = [
+      getImportValue(row, "distractor1"),
+      getImportValue(row, "distractor2"),
+      getImportValue(row, "distractor3")
+    ].filter(Boolean);
+
+    if (!stem || !correct || distractors.length < 1) {
+      skipped.push(index + 2);
+      return;
+    }
+
+    const id = `import-${timestamp}-${index}`;
+    imported.push({
+      id,
+      category: normalizeTheme(getImportValue(row, "category")),
+      system: getImportValue(row, "system"),
+      topic: getImportValue(row, "topic"),
+      difficulty: normalizeDifficulty(getImportValue(row, "difficulty")),
+      stem,
+      imageUrl: getImportValue(row, "imageUrl"),
+      options: [correct, ...distractors].slice(0, 4).map((text, optionIndex) => ({
+        id: `${id}-option-${optionIndex}`,
+        text,
+        isCorrect: optionIndex === 0
+      })),
+      explanation: getImportValue(row, "explanation"),
+      keyPoint: getImportValue(row, "keyPoint")
+    });
+  });
+
+  return { imported, skipped };
+}
+
+async function readQuestionRowsFromFile(file) {
+  const { read, utils } = await import("xlsx");
+  const data = await file.arrayBuffer();
+  const workbook = read(data, { type: "array" });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  return utils.sheet_to_json(sheet, { defval: "" });
+}
 
 function getInitialSession() {
   const params = new URLSearchParams(window.location.search);
@@ -197,6 +300,7 @@ function App() {
   const [answerHistory, setAnswerHistory] = useState([]);
   const [editorQuestion, setEditorQuestion] = useState(() => cloneQuestion(emptyQuestion));
   const [editingId, setEditingId] = useState(null);
+  const [importMessage, setImportMessage] = useState("");
 
   const categories = useMemo(
     () =>
@@ -354,6 +458,27 @@ function App() {
     setEditorQuestion(cloneQuestion(normalized));
   }
 
+  async function importQuestionsFromFile(file) {
+    if (!file) return;
+    try {
+      const rows = await readQuestionRowsFromFile(file);
+      const { imported, skipped } = buildImportedQuestions(rows);
+
+      if (!imported.length) {
+        setImportMessage("No se importaron preguntas. Revisa que el archivo tenga enunciado, respuesta_correcta y al menos un distractor.");
+        return;
+      }
+
+      setQuestions((previous) => [...previous, ...imported]);
+      setImportMessage(
+        `${imported.length} pregunta${imported.length === 1 ? "" : "s"} importada${imported.length === 1 ? "" : "s"}.` +
+          (skipped.length ? ` Filas omitidas: ${skipped.join(", ")}.` : "")
+      );
+    } catch (error) {
+      setImportMessage("No se pudo leer el archivo. Prueba con un .xlsx, .xls o .csv con encabezados en la primera fila.");
+    }
+  }
+
   function deleteQuestion(questionId) {
     setQuestions((previous) => previous.filter((question) => question.id !== questionId));
     if (editingId === questionId) newQuestion();
@@ -471,7 +596,9 @@ function App() {
           editQuestion={editQuestion}
           editingId={editingId}
           editorQuestion={editorQuestion}
+          importMessage={importMessage}
           newQuestion={newQuestion}
+          onImportQuestions={importQuestionsFromFile}
           questions={questions}
           saveQuestion={saveQuestion}
           updateEditorField={updateEditorField}
@@ -829,21 +956,45 @@ function TeacherBank({
   editQuestion,
   editingId,
   editorQuestion,
+  importMessage,
   newQuestion,
+  onImportQuestions,
   questions,
   saveQuestion,
   updateEditorField,
   updateOption
 }) {
+  const fileInputRef = useRef(null);
+
   return (
     <section className="teacher-layout">
       <aside className="panel bank-list">
         <div className="section-heading">
           <h2>Banco profesor</h2>
-          <button className="secondary" onClick={newQuestion} type="button">
-            Nueva
-          </button>
+          <div className="button-row">
+            <button className="secondary" onClick={() => fileInputRef.current?.click()} type="button">
+              Importar Excel
+            </button>
+            <button className="secondary" onClick={newQuestion} type="button">
+              Nueva
+            </button>
+          </div>
         </div>
+        <input
+          accept=".xlsx,.xls,.csv"
+          className="sr-only"
+          onChange={(event) => {
+            onImportQuestions(event.target.files?.[0]);
+            event.target.value = "";
+          }}
+          ref={fileInputRef}
+          type="file"
+        />
+        <div className="import-helper">
+          <strong>Columnas Excel:</strong> tema_principal, sistema, tema, dificultad, enunciado,
+          respuesta_correcta, distractor_1, distractor_2, distractor_3, explicación, idea_clave.
+        </div>
+        {importMessage && <p className="import-message">{importMessage}</p>}
         {questions.map((question) => (
           <article className={editingId === question.id ? "bank-item selected" : "bank-item"} key={question.id}>
             <span className={`difficulty ${question.difficulty}`}>{difficultyLabels[question.difficulty]}</span>
