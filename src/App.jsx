@@ -712,34 +712,40 @@ function QuizPlayer({
 
     return (
       <section className={isExam ? "panel empty-state exam-results" : "panel empty-state"}>
-        <h2>Ronda terminada</h2>
-        <p>
-          Resultado: {stats.correct} de {answers.length}. Precision {stats.precision}%.
-        </p>
+        <h2>{isExam ? "Examen terminado" : "Ronda terminada"}</h2>
+        {!isExam && (
+          <p>
+            Resultado: {stats.correct} de {answers.length}. Precision {stats.precision}%.
+          </p>
+        )}
         {isExam && (
           <div className="exam-review">
             <h3>Revision del examen</h3>
             {reviewItems.map(({ answer, correctOption, index, question, selectedOption }) => (
-              <article
+              <details
                 className={answer?.isCorrect ? "review-item correct" : "review-item wrong"}
                 key={question.id}
               >
-                <div className="review-head">
-                  <span>Pregunta {index + 1}</span>
-                  <b>{answer?.isCorrect ? "Correcta" : "Incorrecta"}</b>
+                <summary>
+                  <span>
+                    <b>Pregunta {index + 1}</b>
+                    {question.stem}
+                  </span>
+                  <strong>{answer?.isCorrect ? "Correcta" : "Incorrecta"}</strong>
+                </summary>
+                <div className="review-detail">
+                  <p className="review-answer">
+                    <b>Tu respuesta:</b> {selectedOption?.text || "Sin respuesta"}
+                  </p>
+                  <p className="review-answer">
+                    <b>Respuesta correcta:</b> {correctOption?.text}
+                  </p>
+                  <p>{question.explanation}</p>
+                  <p>
+                    <b>Idea clave:</b> {question.keyPoint}
+                  </p>
                 </div>
-                <h4>{question.stem}</h4>
-                <p className="review-answer">
-                  <b>Tu respuesta:</b> {selectedOption?.text || "Sin respuesta"}
-                </p>
-                <p className="review-answer">
-                  <b>Respuesta correcta:</b> {correctOption?.text}
-                </p>
-                <p>{question.explanation}</p>
-                <p>
-                  <b>Idea clave:</b> {question.keyPoint}
-                </p>
-              </article>
+              </details>
             ))}
           </div>
         )}
@@ -756,8 +762,8 @@ function QuizPlayer({
     <section className="grid">
       <aside className="panel metrics">
         <Metric label="Pregunta" value={`${currentIndex + 1}/${deck.length}`} />
-        <Metric label="Puntuacion" value={stats.correct} />
-        <Metric label="Precision" value={`${stats.precision}%`} />
+        {!isExam && <Metric label="Puntuacion" value={stats.correct} />}
+        {!isExam && <Metric label="Precision" value={`${stats.precision}%`} />}
         <Metric label="Contestadas" value={stats.answered} />
         {isExam && <div className="exam-badge">Modo examen: feedback al final</div>}
         <button className="secondary wide-action" onClick={onExit} type="button">
