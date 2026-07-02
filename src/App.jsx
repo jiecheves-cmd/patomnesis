@@ -49,7 +49,7 @@ function getInitialSession() {
   const params = new URLSearchParams(window.location.search);
   const requestedUserRole = params.get("user") || params.get("usuario") || params.get("perfil");
   const requestedViewRole = params.get("role") || params.get("modo");
-  const userRole = roleAliases[requestedUserRole] || roleAliases[requestedViewRole] || "student";
+  const userRole = roleAliases[requestedUserRole] || roleAliases[requestedViewRole] || "supervisor";
   const allowedRoles = roleAccess[userRole];
   const viewRole = roleAliases[requestedViewRole] || userRole;
 
