@@ -175,8 +175,8 @@ function getSmartSessionSummary(questions, history) {
     ? profile.weakCategories.slice(0, 3)
     : starterTopics;
   const criteria = history.length
-    ? ["Fallos recientes", "Areas debiles", "Dificultad adaptativa", "Preguntas no vistas"]
-    : ["Diagnostico inicial", "Variedad de temas", "Base e intermedia", "Preguntas no vistas"];
+    ? ["Fallos recientes", "Áreas débiles", "Dificultad adaptativa", "Preguntas no vistas"]
+    : ["Diagnóstico inicial", "Variedad de temas", "Base e intermedia", "Preguntas no vistas"];
 
   return { criteria, weakTopics };
 }
@@ -379,7 +379,7 @@ function App() {
             <img src="/brand/patomnesis-icon.png" alt="" />
             <div>
               <h1>Patomnesis</h1>
-              <span>Quiz de anatomia patologica</span>
+              <span>Quiz de anatomía patológica</span>
             </div>
           </div>
           <div className="profile-actions">
@@ -389,7 +389,7 @@ function App() {
               Mi perfil
             </button>
             <button className="ghost" type="button">
-              Cerrar sesion
+              Cerrar sesión
             </button>
           </div>
         </div>
@@ -523,15 +523,15 @@ function StudentLaunch({
       <article className="student-main-card">
         <div className="smart-card">
           <div>
-            <p className="smart-label">Sesion inteligente</p>
+            <p className="smart-label">Sesión inteligente</p>
             <h2>Hasta 10 preguntas adaptadas a ti</h2>
-            <p>Tus puntos mas debiles de hoy:</p>
+            <p>Tus puntos más débiles de hoy:</p>
             <div className="focus-chips">
               {focusTopics.map((topic) => (
                 <span key={topic}>{topic}</span>
               ))}
             </div>
-            <div className="smart-criteria" aria-label="Criterios de seleccion">
+            <div className="smart-criteria" aria-label="Criterios de selección">
               {smartSession.criteria.map((criterion) => (
                 <span key={criterion}>{criterion}</span>
               ))}
@@ -544,9 +544,9 @@ function StudentLaunch({
 
         <div className="student-copy">
           <p className="eyebrow">Modo alumno</p>
-          <h2>Preparado para tu siguiente reto?</h2>
+          <h2>¿Preparado para tu siguiente reto?</h2>
           <p>
-            Continua entrenando diagnostico visual con sesiones cortas, feedback inmediato y dificultad
+            Continúa entrenando diagnóstico visual con sesiones cortas, feedback inmediato y dificultad
             ajustable.
           </p>
         </div>
@@ -554,7 +554,7 @@ function StudentLaunch({
         <div className="mission-card">
           <div>
             <strong>Responder 20 preguntas</strong>
-            <span>Suma cualquier sesion de practica o repaso inteligente.</span>
+            <span>Suma cualquier sesión de práctica o repaso inteligente.</span>
           </div>
           <b>{dailyProgress}/20 preguntas hoy</b>
           <div className="mission-bar">
@@ -614,7 +614,7 @@ function StudentLaunch({
         </div>
 
         <div className="control-block">
-          <strong>Numero de preguntas</strong>
+          <strong>Número de preguntas</strong>
           <div className="count-row">
             {[5, 10, 15, 20].map((count) => (
               <button
@@ -627,7 +627,7 @@ function StudentLaunch({
               </button>
             ))}
           </div>
-          <p className="availability">{filteredCount} preguntas disponibles con esta configuracion.</p>
+          <p className="availability">{filteredCount} preguntas disponibles con esta configuración.</p>
         </div>
 
         <div className="start-stack">
@@ -643,9 +643,9 @@ function StudentLaunch({
       <aside className="student-side">
         <section className="progress-card">
           <span>Tu progreso</span>
-          <div className="streak">Racha diaria: 2 dias seguidos</div>
+          <div className="streak">Racha diaria: 2 días seguidos</div>
           <strong>#1</strong>
-          <p>posicion en el ranking global</p>
+          <p>posición en el ranking global</p>
           <div className="xp-line">
             <b>{84 + stats.correct * 4} PatoXP acumulados</b>
             <span><i style={{ width: `${Math.min(100, 35 + stats.correct * 12)}%` }} /></span>
@@ -715,12 +715,12 @@ function QuizPlayer({
         <h2>{isExam ? "Examen terminado" : "Ronda terminada"}</h2>
         {!isExam && (
           <p>
-            Resultado: {stats.correct} de {answers.length}. Precision {stats.precision}%.
+            Resultado: {stats.correct} de {answers.length}. Precisión {stats.precision}%.
           </p>
         )}
         {isExam && (
           <div className="exam-review">
-            <h3>Revision del examen</h3>
+            <h3>Revisión del examen</h3>
             {reviewItems.map(({ answer, correctOption, index, question, selectedOption }) => (
               <details
                 className={answer?.isCorrect ? "review-item correct" : "review-item wrong"}
@@ -762,8 +762,8 @@ function QuizPlayer({
     <section className="grid">
       <aside className="panel metrics">
         <Metric label="Pregunta" value={`${currentIndex + 1}/${deck.length}`} />
-        {!isExam && <Metric label="Puntuacion" value={stats.correct} />}
-        {!isExam && <Metric label="Precision" value={`${stats.precision}%`} />}
+        {!isExam && <Metric label="Puntuación" value={stats.correct} />}
+        {!isExam && <Metric label="Precisión" value={`${stats.precision}%`} />}
         <Metric label="Contestadas" value={stats.answered} />
         {isExam && <div className="exam-badge">Modo examen: feedback al final</div>}
         <button className="secondary wide-action" onClick={onExit} type="button">
@@ -866,7 +866,7 @@ function TeacherBank({
         <h2>{editingId ? "Editar pregunta" : "Nueva pregunta"}</h2>
         <div className="form-grid">
           <label>
-            Categoria
+            Categoría
             <input value={editorQuestion.category} onChange={(event) => updateEditorField("category", event.target.value)} />
           </label>
           <label>
@@ -902,7 +902,7 @@ function TeacherBank({
             </label>
           ))}
           <label className="wide">
-            Explicacion
+            Explicación
             <textarea value={editorQuestion.explanation} onChange={(event) => updateEditorField("explanation", event.target.value)} />
           </label>
           <label className="wide">
@@ -941,15 +941,15 @@ function SupervisorDashboard({ answers, questions }) {
       <div className="metric-grid">
         <Metric label="Preguntas en banco" value={questions.length} />
         <Metric label="Respuestas registradas" value={answers.length} />
-        <Metric label="Categoria a reforzar" value={weakCategory} />
+        <Metric label="Categoría a reforzar" value={weakCategory} />
       </div>
       <table>
         <thead>
           <tr>
-            <th>Categoria</th>
+            <th>Categoría</th>
             <th>Correctas</th>
             <th>Fallos</th>
-            <th>Precision</th>
+            <th>Precisión</th>
           </tr>
         </thead>
         <tbody>
@@ -964,7 +964,7 @@ function SupervisorDashboard({ answers, questions }) {
             ))
           ) : (
             <tr>
-              <td colSpan="4">Todavia no hay respuestas en esta sesion local.</td>
+              <td colSpan="4">Todavía no hay respuestas en esta sesión local.</td>
             </tr>
           )}
         </tbody>
