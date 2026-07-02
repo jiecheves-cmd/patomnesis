@@ -1,18 +1,20 @@
 :root {
   color-scheme: light;
-  --bg: #eef2ff;
+  --bg: #edf7f7;
   --panel: #ffffff;
-  --ink: #172033;
-  --muted: #647084;
-  --line: #dce3ee;
-  --brand: #6d4cff;
-  --brand-dark: #2d1d86;
-  --brand-soft: #eee9ff;
-  --good: #17834d;
-  --bad: #b42318;
-  --warn: #a95c00;
-  --shadow: 0 18px 45px rgba(23, 32, 51, 0.12);
-  --shadow-soft: 0 12px 30px rgba(23, 32, 51, 0.08);
+  --ink: #10212b;
+  --muted: #60717a;
+  --line: #d5e5e4;
+  --brand: #0f766e;
+  --brand-dark: #134e4a;
+  --brand-soft: #ddf7f4;
+  --accent: #ef6f61;
+  --accent-soft: #fff1ee;
+  --good: #16845a;
+  --bad: #bf3328;
+  --warn: #b35a15;
+  --shadow: 0 18px 45px rgba(16, 33, 43, 0.12);
+  --shadow-soft: 0 12px 30px rgba(16, 33, 43, 0.08);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -23,8 +25,9 @@
 body {
   margin: 0;
   background:
-    radial-gradient(circle at 78% 18%, rgba(109, 76, 255, 0.14), transparent 28%),
-    linear-gradient(180deg, #f1f4ff 0%, var(--bg) 58%, #f8fbff 100%);
+    radial-gradient(circle at 76% 16%, rgba(239, 111, 97, 0.16), transparent 28%),
+    radial-gradient(circle at 10% 10%, rgba(15, 118, 110, 0.14), transparent 30%),
+    linear-gradient(180deg, #f5fbfb 0%, var(--bg) 58%, #fbfefe 100%);
   color: var(--ink);
 }
 
@@ -64,7 +67,7 @@ button.secondary {
 button.primary-large {
   padding: 15px 18px;
   font-size: 1rem;
-  box-shadow: 0 12px 22px rgba(36, 92, 168, 0.22);
+  box-shadow: 0 12px 22px rgba(15, 118, 110, 0.22);
 }
 
 button.danger {
@@ -355,7 +358,7 @@ p {
 
 .app-header {
   padding: 14px 0 22px;
-  border-bottom: 1px solid rgba(109, 76, 255, 0.1);
+  border-bottom: 1px solid rgba(15, 118, 110, 0.12);
   margin-bottom: 22px;
 }
 
@@ -368,21 +371,22 @@ p {
 
 .brand-mini {
   display: flex;
-  gap: 10px;
+  gap: 14px;
   align-items: center;
 }
 
 .brand-mini img {
-  width: 36px;
-  height: 36px;
+  width: 58px;
+  height: 58px;
   object-fit: contain;
-  border-radius: 10px;
+  border-radius: 16px;
+  box-shadow: 0 10px 24px rgba(16, 33, 43, 0.08);
 }
 
 .brand-mini h1 {
   margin: 0;
-  color: #17104f;
-  font-size: 1.75rem;
+  color: var(--brand-dark);
+  font-size: 2.25rem;
   line-height: 0.95;
   letter-spacing: 0;
 }
@@ -419,7 +423,7 @@ p {
 
 button.ghost {
   padding: 8px 14px;
-  border: 1px solid rgba(109, 76, 255, 0.16);
+  border: 1px solid rgba(15, 118, 110, 0.18);
   background: rgba(255, 255, 255, 0.55);
   color: #53617a;
   font-weight: 700;
@@ -458,7 +462,7 @@ button.ghost {
 .pill-row button.active,
 .count-row button.active {
   border-color: transparent;
-  background: linear-gradient(135deg, #694bff, #8a5cf6);
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
   color: #fff;
 }
 
@@ -482,7 +486,7 @@ button.ghost {
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid rgba(220, 227, 238, 0.9);
   border-radius: 24px;
-  box-shadow: 0 24px 60px rgba(45, 29, 134, 0.1);
+  box-shadow: 0 24px 60px rgba(16, 33, 43, 0.1);
 }
 
 .student-main-card {
@@ -497,8 +501,10 @@ button.ghost {
   padding: 24px;
   border-radius: 20px;
   color: #fff;
-  background: linear-gradient(135deg, #2d1d86 0%, #7046ff 100%);
-  box-shadow: 0 22px 46px rgba(87, 55, 220, 0.24);
+  background:
+    radial-gradient(circle at 88% 20%, rgba(239, 111, 97, 0.38), transparent 26%),
+    linear-gradient(135deg, #123c3b 0%, #0f766e 58%, #19a99c 100%);
+  box-shadow: 0 22px 46px rgba(15, 118, 110, 0.24);
 }
 
 .smart-label {
@@ -549,7 +555,7 @@ button.ghost {
   width: 100%;
   padding: 16px 18px;
   background: #fff;
-  color: var(--brand);
+  color: var(--brand-dark);
   border-radius: 14px;
 }
 
@@ -611,7 +617,7 @@ button.ghost {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(135deg, #694bff, #8a5cf6);
+  background: linear-gradient(135deg, #0f766e, #ef6f61);
 }
 
 .control-block {
@@ -651,14 +657,14 @@ button.ghost {
 .start-primary {
   padding: 16px 20px;
   border-radius: 18px;
-  background: linear-gradient(135deg, #694bff, #8a5cf6);
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
 }
 
 .exam-mode {
   padding: 14px 20px;
-  border: 1px solid rgba(109, 76, 255, 0.45);
+  border: 1px solid rgba(15, 118, 110, 0.45);
   background: #fff;
-  color: #21145f;
+  color: var(--brand-dark);
   border-radius: 18px;
 }
 
@@ -671,8 +677,10 @@ button.ghost {
   padding: 24px;
   border-radius: 24px;
   color: #fff;
-  background: linear-gradient(160deg, #694bff 0%, #965ef8 100%);
-  box-shadow: 0 24px 60px rgba(87, 55, 220, 0.24);
+  background:
+    radial-gradient(circle at 82% 15%, rgba(255, 214, 166, 0.25), transparent 25%),
+    linear-gradient(160deg, #134e4a 0%, #0f766e 55%, #ef6f61 130%);
+  box-shadow: 0 24px 60px rgba(15, 118, 110, 0.24);
 }
 
 .progress-card > span {
@@ -751,16 +759,16 @@ button.ghost {
   margin: 18px auto;
   border-radius: 50%;
   background:
-    radial-gradient(circle, transparent 0 26%, rgba(109, 76, 255, 0.1) 27% 28%, transparent 29% 52%, rgba(109, 76, 255, 0.1) 53% 54%, transparent 55%),
-    repeating-conic-gradient(from 0deg, rgba(109, 76, 255, 0.2) 0deg 2deg, transparent 2deg 45deg);
+    radial-gradient(circle, transparent 0 26%, rgba(15, 118, 110, 0.11) 27% 28%, transparent 29% 52%, rgba(15, 118, 110, 0.11) 53% 54%, transparent 55%),
+    repeating-conic-gradient(from 0deg, rgba(15, 118, 110, 0.22) 0deg 2deg, transparent 2deg 45deg);
 }
 
 .radar-chart span {
   width: 118px;
   height: 102px;
   clip-path: polygon(50% 0, 91% 22%, 84% 77%, 42% 100%, 4% 64%, 18% 21%);
-  background: rgba(109, 76, 255, 0.34);
-  border: 2px solid #6d4cff;
+  background: rgba(15, 118, 110, 0.28);
+  border: 2px solid #0f766e;
 }
 
 .difficulty-starts.compact {
