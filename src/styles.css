@@ -586,6 +586,13 @@ button.ghost {
   border-radius: 14px;
 }
 
+.smart-cta:hover,
+.smart-cta:focus-visible {
+  background: #fff4d6;
+  color: var(--brand-dark);
+  box-shadow: 0 12px 26px rgba(245, 158, 11, 0.22);
+}
+
 .student-copy h2 {
   margin: 0 0 8px;
   color: #10192f;
@@ -693,6 +700,14 @@ button.ghost {
   background: #fff;
   color: var(--brand-dark);
   border-radius: 18px;
+}
+
+.exam-mode:hover,
+.exam-mode:focus-visible {
+  border-color: rgba(126, 34, 206, 0.56);
+  background: #fff4d6;
+  color: var(--brand-dark);
+  box-shadow: 0 12px 24px rgba(126, 34, 206, 0.12);
 }
 
 .student-side {
