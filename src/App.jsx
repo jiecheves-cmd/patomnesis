@@ -185,7 +185,7 @@ function App() {
   const [session] = useState(() => getInitialSession());
   const [role, setRole] = useState(session.viewRole);
   const [questions, setQuestions] = useState(seedQuestions);
-  const [category, setCategory] = useState("Todas");
+  const [selectedCategories, setSelectedCategories] = useState([]);
   const [difficulty, setDifficulty] = useState("Todas");
   const [deck, setDeck] = useState(() => prepareDeck(seedQuestions, 6));
   const [questionCount, setQuestionCount] = useState(10);
@@ -198,7 +198,7 @@ function App() {
   const [editingId, setEditingId] = useState(null);
 
   const categories = useMemo(
-    () => ["Todas", ...Array.from(new Set(questions.map((question) => question.category))).sort()],
+    () => Array.from(new Set(questions.map((question) => question.category))).sort(),
     [questions]
   );
 
@@ -210,11 +210,12 @@ function App() {
   const filteredQuestions = useMemo(
     () =>
       questions.filter((question) => {
-        const categoryMatch = category === "Todas" || question.category === category;
+        const categoryMatch =
+          selectedCategories.length === 0 || selectedCategories.includes(question.category);
         const difficultyMatch = difficulty === "Todas" || question.difficulty === difficulty;
         return categoryMatch && difficultyMatch;
       }),
-    [category, difficulty, questions]
+    [difficulty, questions, selectedCategories]
   );
 
   const stats = useMemo(() => {
@@ -252,14 +253,14 @@ function App() {
   }
 
   function startQuickQuiz() {
-    setCategory("Todas");
+    setSelectedCategories([]);
     setDifficulty("Todas");
     startQuiz(questions);
   }
 
   function startSmartSession() {
     const smartDeck = selectSmartQuestions(questions, answerHistory, Math.min(10, questions.length));
-    setCategory("Todas");
+    setSelectedCategories([]);
     setDifficulty("Todas");
     setDeck(smartDeck);
     setCurrentIndex(0);
@@ -269,9 +270,17 @@ function App() {
   }
 
   function startDifficultyQuiz(nextDifficulty) {
-    setCategory("Todas");
+    setSelectedCategories([]);
     setDifficulty(nextDifficulty);
     startQuiz(questions.filter((question) => question.difficulty === nextDifficulty));
+  }
+
+  function toggleCategory(nextCategory) {
+    setSelectedCategories((previous) =>
+      previous.includes(nextCategory)
+        ? previous.filter((category) => category !== nextCategory)
+        : [...previous, nextCategory]
+    );
   }
 
   function answerQuestion(option) {
@@ -421,7 +430,6 @@ function App() {
           ) : (
             <StudentLaunch
               categories={categories}
-              category={category}
               difficulty={difficulty}
               filteredCount={filteredQuestions.length}
               hasMistakes={answers.some((answer) => !answer.isCorrect)}
@@ -431,11 +439,13 @@ function App() {
               onStartFiltered={() => startQuiz()}
               questionCount={questionCount}
               questions={questions}
-              setCategory={setCategory}
+              selectedCategories={selectedCategories}
+              setSelectedCategories={setSelectedCategories}
               setDifficulty={setDifficulty}
               setQuestionCount={setQuestionCount}
               smartSession={smartSession}
               stats={learningStats}
+              toggleCategory={toggleCategory}
             />
           )}
         </>
@@ -462,7 +472,6 @@ function App() {
 
 function StudentLaunch({
   categories,
-  category,
   difficulty,
   filteredCount,
   hasMistakes,
@@ -472,11 +481,13 @@ function StudentLaunch({
   onStartFiltered,
   questionCount,
   questions,
-  setCategory,
+  selectedCategories,
+  setSelectedCategories,
   setDifficulty,
   setQuestionCount,
   smartSession,
-  stats
+  stats,
+  toggleCategory
 }) {
   const difficultyCounts = useMemo(
     () =>
@@ -489,8 +500,9 @@ function StudentLaunch({
 
   const focusTopics = smartSession.weakTopics.length
     ? smartSession.weakTopics
-    : categories.filter((item) => item !== "Todas").slice(0, 3);
+    : categories.slice(0, 3);
   const dailyProgress = Math.min(stats.answered, 20);
+  const allTopicsSelected = selectedCategories.length === 0;
 
   return (
     <section className="student-dashboard">
@@ -560,22 +572,31 @@ function StudentLaunch({
         <div className="control-block">
           <div className="control-heading">
             <strong>Temas</strong>
-            <button className="tiny-pill" onClick={() => setCategory("Todas")} type="button">
+            <button
+              className={allTopicsSelected ? "tiny-pill active" : "tiny-pill"}
+              onClick={() => setSelectedCategories([])}
+              type="button"
+            >
               Todos
             </button>
           </div>
           <div className="topic-chips">
             {categories.map((item) => (
               <button
-                className={category === item ? "active" : ""}
+                className={allTopicsSelected || selectedCategories.includes(item) ? "active" : ""}
                 key={item}
-                onClick={() => setCategory(item)}
+                onClick={() => toggleCategory(item)}
                 type="button"
               >
                 {item}
               </button>
             ))}
           </div>
+          <p className="availability">
+            {allTopicsSelected
+              ? "Todos los temas seleccionados."
+              : `${selectedCategories.length} temas seleccionados.`}
+          </p>
         </div>
 
         <div className="control-block">
