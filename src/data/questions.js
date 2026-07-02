@@ -1,7 +1,24 @@
+export const questionThemes = [
+  "Lesión celular y muerte",
+  "Inflamación y reparación",
+  "Trastornos hemodinámicos",
+  "Neoplasia",
+  "Patología cardiovascular",
+  "Patología respiratoria",
+  "Patología digestiva y hepatobiliar",
+  "Patología renal y urinaria",
+  "Patología endocrina",
+  "Patología ginecológica y mama",
+  "Hematopatología",
+  "Dermatopatología",
+  "Neuropatología",
+  "Patología infecciosa e inmunitaria"
+];
+
 export const seedQuestions = [
   {
     id: "q-lesion-1",
-    category: "Lesión celular",
+    category: "Lesión celular y muerte",
     system: "General",
     topic: "Hipoxia",
     difficulty: "basic",
@@ -19,7 +36,7 @@ export const seedQuestions = [
   },
   {
     id: "q-lesion-2",
-    category: "Lesión celular",
+    category: "Lesión celular y muerte",
     system: "Cardiovascular",
     topic: "Necrosis",
     difficulty: "basic",
@@ -37,7 +54,7 @@ export const seedQuestions = [
   },
   {
     id: "q-inflamacion-1",
-    category: "Inflamación",
+    category: "Inflamación y reparación",
     system: "General",
     topic: "Inflamación aguda",
     difficulty: "basic",
@@ -55,7 +72,7 @@ export const seedQuestions = [
   },
   {
     id: "q-inflamacion-2",
-    category: "Inflamación",
+    category: "Inflamación y reparación",
     system: "General",
     topic: "Granulomas",
     difficulty: "intermediate",
@@ -73,7 +90,7 @@ export const seedQuestions = [
   },
   {
     id: "q-hemo-1",
-    category: "Hemodinámica",
+    category: "Trastornos hemodinámicos",
     system: "Pulmón",
     topic: "Congestión",
     difficulty: "intermediate",
@@ -109,7 +126,7 @@ export const seedQuestions = [
   },
   {
     id: "q-respiratorio-1",
-    category: "Respiratorio",
+    category: "Patología respiratoria",
     system: "Pulmón",
     topic: "Enfisema",
     difficulty: "intermediate",
@@ -131,7 +148,7 @@ export const seedQuestions = [
   },
   {
     id: "q-endocrino-1",
-    category: "Endocrino",
+    category: "Patología endocrina",
     system: "Tiroides",
     topic: "Carcinoma papilar",
     difficulty: "advanced",

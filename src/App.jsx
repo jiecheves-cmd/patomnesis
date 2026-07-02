@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { difficultyLabels, roleLabels, seedQuestions } from "./data/questions.js";
+import { difficultyLabels, questionThemes, roleLabels, seedQuestions } from "./data/questions.js";
 import { isSupabaseConfigured } from "./lib/supabase.js";
 
 const emptyQuestion = {
@@ -199,7 +199,8 @@ function App() {
   const [editingId, setEditingId] = useState(null);
 
   const categories = useMemo(
-    () => Array.from(new Set(questions.map((question) => question.category))).sort(),
+    () =>
+      Array.from(new Set([...questionThemes, ...questions.map((question) => question.category)])).filter(Boolean),
     [questions]
   );
 
@@ -866,8 +867,15 @@ function TeacherBank({
         <h2>{editingId ? "Editar pregunta" : "Nueva pregunta"}</h2>
         <div className="form-grid">
           <label>
-            Categoría
-            <input value={editorQuestion.category} onChange={(event) => updateEditorField("category", event.target.value)} />
+            Tema principal
+            <select value={editorQuestion.category} onChange={(event) => updateEditorField("category", event.target.value)}>
+              <option value="">Selecciona un tema</option>
+              {questionThemes.map((theme) => (
+                <option key={theme} value={theme}>
+                  {theme}
+                </option>
+              ))}
+            </select>
           </label>
           <label>
             Sistema
@@ -941,12 +949,12 @@ function SupervisorDashboard({ answers, questions }) {
       <div className="metric-grid">
         <Metric label="Preguntas en banco" value={questions.length} />
         <Metric label="Respuestas registradas" value={answers.length} />
-        <Metric label="Categoría a reforzar" value={weakCategory} />
+        <Metric label="Tema a reforzar" value={weakCategory} />
       </div>
       <table>
         <thead>
           <tr>
-            <th>Categoría</th>
+            <th>Tema</th>
             <th>Correctas</th>
             <th>Fallos</th>
             <th>Precisión</th>
