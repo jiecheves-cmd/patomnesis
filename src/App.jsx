@@ -5,7 +5,6 @@ import { isSupabaseConfigured } from "./lib/supabase.js";
 const emptyQuestion = {
   id: "",
   category: "",
-  system: "",
   topic: "",
   difficulty: "basic",
   stem: "",
@@ -72,7 +71,6 @@ const difficultyAliases = {
 
 const importColumnAliases = {
   category: ["tema_principal", "tema principal", "categoria", "categoría", "category"],
-  system: ["sistema", "system", "organo", "órgano"],
   topic: ["tema", "subtema", "topic"],
   difficulty: ["dificultad", "nivel", "difficulty"],
   stem: ["enunciado", "pregunta", "question", "stem"],
@@ -135,7 +133,6 @@ function buildImportedQuestions(rows) {
     imported.push({
       id,
       category: normalizeTheme(getImportValue(row, "category")),
-      system: getImportValue(row, "system"),
       topic: getImportValue(row, "topic"),
       difficulty: normalizeDifficulty(getImportValue(row, "difficulty")),
       stem,
@@ -991,7 +988,7 @@ function TeacherBank({
           type="file"
         />
         <div className="import-helper">
-          <strong>Columnas Excel:</strong> tema_principal, sistema, tema, dificultad, enunciado,
+          <strong>Columnas Excel:</strong> tema_principal, tema, dificultad, enunciado,
           respuesta_correcta, distractor_1, distractor_2, distractor_3, explicación, idea_clave.
         </div>
         {importMessage && <p className="import-message">{importMessage}</p>}
@@ -1027,10 +1024,6 @@ function TeacherBank({
                 </option>
               ))}
             </select>
-          </label>
-          <label>
-            Sistema
-            <input value={editorQuestion.system} onChange={(event) => updateEditorField("system", event.target.value)} />
           </label>
           <label>
             Tema

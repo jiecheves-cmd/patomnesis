@@ -19,7 +19,6 @@ export const seedQuestions = [
   {
     id: "q-lesion-1",
     category: "Lesión celular y muerte",
-    system: "General",
     topic: "Hipoxia",
     difficulty: "basic",
     stem: "¿Cuál es el cambio reversible más característico en una célula sometida a hipoxia leve?",
@@ -37,7 +36,6 @@ export const seedQuestions = [
   {
     id: "q-lesion-2",
     category: "Lesión celular y muerte",
-    system: "Cardiovascular",
     topic: "Necrosis",
     difficulty: "basic",
     stem: "¿Qué patrón de necrosis se asocia de forma clásica al infarto de miocardio?",
@@ -55,7 +53,6 @@ export const seedQuestions = [
   {
     id: "q-inflamacion-1",
     category: "Inflamación y reparación",
-    system: "General",
     topic: "Inflamación aguda",
     difficulty: "basic",
     stem: "¿Qué célula predomina en la inflamación aguda bacteriana durante las primeras horas?",
@@ -73,7 +70,6 @@ export const seedQuestions = [
   {
     id: "q-inflamacion-2",
     category: "Inflamación y reparación",
-    system: "General",
     topic: "Granulomas",
     difficulty: "intermediate",
     stem: "Un granuloma con células epitelioides y células gigantes sugiere principalmente qué tipo de respuesta?",
@@ -91,7 +87,6 @@ export const seedQuestions = [
   {
     id: "q-hemo-1",
     category: "Trastornos hemodinámicos",
-    system: "Pulmón",
     topic: "Congestión",
     difficulty: "intermediate",
     stem: "¿Qué hallazgo histológico es más compatible con congestión pulmonar crónica por insuficiencia cardíaca izquierda?",
@@ -109,7 +104,6 @@ export const seedQuestions = [
   {
     id: "q-neoplasia-1",
     category: "Neoplasia",
-    system: "General",
     topic: "Malignidad",
     difficulty: "basic",
     stem: "¿Qué rasgo histológico suele sugerir malignidad en un tumor epitelial?",
@@ -127,7 +121,6 @@ export const seedQuestions = [
   {
     id: "q-respiratorio-1",
     category: "Patología respiratoria",
-    system: "Pulmón",
     topic: "Enfisema",
     difficulty: "intermediate",
     stem: "¿Qué patrón se espera en el enfisema pulmonar?",
@@ -149,7 +142,6 @@ export const seedQuestions = [
   {
     id: "q-endocrino-1",
     category: "Patología endocrina",
-    system: "Tiroides",
     topic: "Carcinoma papilar",
     difficulty: "advanced",
     stem: "¿Qué hallazgo es característico del carcinoma papilar de tiroides?",
