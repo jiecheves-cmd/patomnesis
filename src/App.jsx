@@ -31,6 +31,19 @@ function cloneQuestion(question) {
   };
 }
 
+function shuffleQuestionOptions(question) {
+  return {
+    ...question,
+    options: shuffle(question.options).map((option) => ({ ...option }))
+  };
+}
+
+function prepareDeck(source, count) {
+  return shuffle(source)
+    .slice(0, Math.min(count, source.length))
+    .map((question) => shuffleQuestionOptions(question));
+}
+
 const roleAliases = {
   alumno: "student",
   profesor: "teacher",
@@ -152,7 +165,7 @@ function selectSmartQuestions(questions, history, count) {
     selected.push(question);
   });
 
-  return selected.slice(0, count);
+  return selected.slice(0, count).map((question) => shuffleQuestionOptions(question));
 }
 
 function getSmartSessionSummary(questions, history) {
@@ -174,7 +187,7 @@ function App() {
   const [questions, setQuestions] = useState(seedQuestions);
   const [category, setCategory] = useState("Todas");
   const [difficulty, setDifficulty] = useState("Todas");
-  const [deck, setDeck] = useState(() => shuffle(seedQuestions).slice(0, 6));
+  const [deck, setDeck] = useState(() => prepareDeck(seedQuestions, 6));
   const [questionCount, setQuestionCount] = useState(10);
   const [showQuiz, setShowQuiz] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -230,7 +243,7 @@ function App() {
   }
 
   function startQuiz(source = filteredQuestions) {
-    const nextDeck = shuffle(source).slice(0, Math.min(questionCount, source.length));
+    const nextDeck = prepareDeck(source, questionCount);
     setDeck(nextDeck);
     setCurrentIndex(0);
     setSelectedOptionId(null);
