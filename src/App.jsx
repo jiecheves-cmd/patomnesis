@@ -392,26 +392,7 @@ function App() {
 
       {role === "student" && (
         <>
-          <StudentLaunch
-            categories={categories}
-            category={category}
-            difficulty={difficulty}
-            filteredCount={filteredQuestions.length}
-            hasMistakes={answers.some((answer) => !answer.isCorrect)}
-            onDifficultyStart={startDifficultyQuiz}
-            onQuickStart={startSmartSession}
-            onRetryMistakes={retryMistakes}
-            onStartFiltered={() => startQuiz()}
-            questionCount={questionCount}
-            questions={questions}
-            setCategory={setCategory}
-            setDifficulty={setDifficulty}
-            setQuestionCount={setQuestionCount}
-            smartSession={smartSession}
-            stats={learningStats}
-          />
-
-          {showQuiz && (
+          {showQuiz ? (
             <QuizPlayer
               answers={answers}
               currentAnswer={currentAnswer}
@@ -420,8 +401,28 @@ function App() {
               deck={deck}
               nextQuestion={nextQuestion}
               onAnswer={answerQuestion}
+              onExit={() => setShowQuiz(false)}
               selectedOptionId={selectedOptionId}
               stats={stats}
+            />
+          ) : (
+            <StudentLaunch
+              categories={categories}
+              category={category}
+              difficulty={difficulty}
+              filteredCount={filteredQuestions.length}
+              hasMistakes={answers.some((answer) => !answer.isCorrect)}
+              onDifficultyStart={startDifficultyQuiz}
+              onQuickStart={startSmartSession}
+              onRetryMistakes={retryMistakes}
+              onStartFiltered={() => startQuiz()}
+              questionCount={questionCount}
+              questions={questions}
+              setCategory={setCategory}
+              setDifficulty={setDifficulty}
+              setQuestionCount={setQuestionCount}
+              smartSession={smartSession}
+              stats={learningStats}
             />
           )}
         </>
@@ -645,6 +646,7 @@ function QuizPlayer({
   deck,
   nextQuestion,
   onAnswer,
+  onExit,
   selectedOptionId,
   stats
 }) {
@@ -655,6 +657,9 @@ function QuizPlayer({
         <p>
           Resultado: {stats.correct} de {answers.length}. Precision {stats.precision}%.
         </p>
+        <button onClick={onExit} type="button">
+          Configurar otra ronda
+        </button>
       </section>
     );
   }
@@ -668,6 +673,9 @@ function QuizPlayer({
         <Metric label="Puntuacion" value={stats.correct} />
         <Metric label="Precision" value={`${stats.precision}%`} />
         <Metric label="Contestadas" value={stats.answered} />
+        <button className="secondary wide-action" onClick={onExit} type="button">
+          Configurar otra ronda
+        </button>
       </aside>
 
       <article className="panel quiz-card">

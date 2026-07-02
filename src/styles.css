@@ -827,6 +827,10 @@ button.ghost {
   font-size: 1.45rem;
 }
 
+.wide-action {
+  grid-column: 1 / -1;
+}
+
 .question-meta {
   display: flex;
   flex-wrap: wrap;
