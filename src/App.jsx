@@ -31,22 +31,37 @@ function cloneQuestion(question) {
   };
 }
 
-function getInitialRole() {
-  const params = new URLSearchParams(window.location.search);
-  const requestedRole = params.get("role") || params.get("modo");
-  const roleAliases = {
-    alumno: "student",
-    profesor: "teacher",
-    supervisor: "supervisor",
-    student: "student",
-    teacher: "teacher"
-  };
+const roleAliases = {
+  alumno: "student",
+  profesor: "teacher",
+  supervisor: "supervisor",
+  student: "student",
+  teacher: "teacher"
+};
 
-  return roleAliases[requestedRole] || "student";
+const roleAccess = {
+  student: ["student"],
+  teacher: ["student", "teacher"],
+  supervisor: ["student", "teacher", "supervisor"]
+};
+
+function getInitialSession() {
+  const params = new URLSearchParams(window.location.search);
+  const requestedUserRole = params.get("user") || params.get("usuario") || params.get("perfil");
+  const requestedViewRole = params.get("role") || params.get("modo");
+  const userRole = roleAliases[requestedUserRole] || roleAliases[requestedViewRole] || "student";
+  const allowedRoles = roleAccess[userRole];
+  const viewRole = roleAliases[requestedViewRole] || userRole;
+
+  return {
+    userRole,
+    viewRole: allowedRoles.includes(viewRole) ? viewRole : userRole
+  };
 }
 
 function App() {
-  const [role, setRole] = useState(() => getInitialRole());
+  const [session] = useState(() => getInitialSession());
+  const [role, setRole] = useState(session.viewRole);
   const [questions, setQuestions] = useState(seedQuestions);
   const [category, setCategory] = useState("Todas");
   const [difficulty, setDifficulty] = useState("Todas");
@@ -84,6 +99,14 @@ function App() {
     const precision = answers.length ? Math.round((correct / answers.length) * 100) : 0;
     return { correct, precision, answered: answers.length };
   }, [answers]);
+
+  const availableRoles = roleAccess[session.userRole];
+
+  function changeRole(nextRole) {
+    setRole(nextRole);
+    setShowQuiz(false);
+    setSelectedOptionId(null);
+  }
 
   function startQuiz(source = filteredQuestions) {
     const nextDeck = shuffle(source).slice(0, Math.min(questionCount, source.length));
@@ -137,13 +160,13 @@ function App() {
   function editQuestion(question) {
     setEditingId(question.id);
     setEditorQuestion(cloneQuestion(question));
-    setRole("teacher");
+    changeRole("teacher");
   }
 
   function newQuestion() {
     setEditingId(null);
     setEditorQuestion(cloneQuestion(emptyQuestion));
-    setRole("teacher");
+    changeRole("teacher");
   }
 
   function saveQuestion() {
@@ -196,7 +219,7 @@ function App() {
           </div>
           <div className="profile-actions">
             <span className="avatar">SU</span>
-            <span>{roleLabels[role]}</span>
+            <span>{roleLabels[session.userRole]}</span>
             <button className="ghost" type="button">
               Mi perfil
             </button>
@@ -205,6 +228,21 @@ function App() {
             </button>
           </div>
         </div>
+
+        {availableRoles.length > 1 && (
+          <nav className="mode-tabs" aria-label="Cambiar vista">
+            {availableRoles.map((value) => (
+              <button
+                className={role === value ? "active" : ""}
+                key={value}
+                onClick={() => changeRole(value)}
+                type="button"
+              >
+                {value === "student" ? "Modo Alumno" : value === "teacher" ? "Modo Profesor" : "Modo Supervisor"}
+              </button>
+            ))}
+          </nav>
+        )}
 
         {role === "student" && (
           <nav className="section-tabs" aria-label="Secciones">
