@@ -1101,8 +1101,8 @@ button.ghost {
 .bank-list {
   display: grid;
   gap: 12px;
-  max-height: calc(100vh - 240px);
-  overflow: hidden;
+  align-content: start;
+  overflow: visible;
 }
 
 .bank-count {
@@ -1146,7 +1146,8 @@ button.ghost {
   display: grid;
   gap: 8px;
   min-height: 0;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: visible;
   padding-right: 2px;
 }
 
