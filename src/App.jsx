@@ -170,8 +170,12 @@ function App() {
     <main className="shell">
       <header className="hero">
         <section>
-          <p className="eyebrow">Quiz visual de anatomia patologica</p>
-          <h1>Patomnesis</h1>
+          <img
+            className="brand-lockup"
+            src="/brand/patomnesis-lockup.png"
+            alt="Patomnesis. Quiz de anatomia patologica"
+          />
+          <h1 className="sr-only">Patomnesis</h1>
           <p className="lead">Mira, piensa, diagnostica.</p>
           <nav className="role-switcher" aria-label="Cambiar rol">
             {Object.entries(roleLabels).map(([value, label]) => (
