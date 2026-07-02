@@ -31,8 +31,22 @@ function cloneQuestion(question) {
   };
 }
 
+function getInitialRole() {
+  const params = new URLSearchParams(window.location.search);
+  const requestedRole = params.get("role") || params.get("modo");
+  const roleAliases = {
+    alumno: "student",
+    profesor: "teacher",
+    supervisor: "supervisor",
+    student: "student",
+    teacher: "teacher"
+  };
+
+  return roleAliases[requestedRole] || "student";
+}
+
 function App() {
-  const [role, setRole] = useState("student");
+  const [role, setRole] = useState(() => getInitialRole());
   const [questions, setQuestions] = useState(seedQuestions);
   const [category, setCategory] = useState("Todas");
   const [difficulty, setDifficulty] = useState("Todas");
@@ -192,29 +206,18 @@ function App() {
           </div>
         </div>
 
-        <nav className="mode-tabs" aria-label="Cambiar rol">
-          {Object.entries(roleLabels).map(([value, label]) => (
-            <button
-              className={role === value ? "active" : ""}
-              key={value}
-              onClick={() => setRole(value)}
-              type="button"
-            >
-              {value === "student" ? "Modo Alumno" : label}
+        {role === "student" && (
+          <nav className="section-tabs" aria-label="Secciones">
+            <button className="active" type="button">
+              Inicio
             </button>
-          ))}
-        </nav>
-
-        <nav className="section-tabs" aria-label="Secciones">
-          <button className="active" type="button">
-            Inicio
-          </button>
-          <button type="button">Liga</button>
-          <button type="button">Hall of Fame</button>
-          <span className="supabase-pill">
-            {isSupabaseConfigured ? "Supabase conectado" : "Demo local"}
-          </span>
-        </nav>
+            <button type="button">Liga</button>
+            <button type="button">Hall of Fame</button>
+            <span className="supabase-pill">
+              {isSupabaseConfigured ? "Supabase conectado" : "Demo local"}
+            </span>
+          </nav>
+        )}
       </header>
 
       {role === "student" && (
