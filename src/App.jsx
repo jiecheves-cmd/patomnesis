@@ -967,6 +967,7 @@ function TeacherBank({
   const [bankDifficulty, setBankDifficulty] = useState("Todas");
   const [expandedQuestionId, setExpandedQuestionId] = useState(null);
   const [editorVisible, setEditorVisible] = useState(Boolean(editingId));
+  const [teacherTab, setTeacherTab] = useState("questions");
 
   const filteredBankQuestions = useMemo(() => {
     const query = normalizeText(bankSearch);
@@ -982,14 +983,35 @@ function TeacherBank({
     });
   }, [bankDifficulty, bankSearch, bankTheme, questions]);
 
+  const bankStats = useMemo(() => {
+    const byDifficulty = Object.keys(difficultyLabels).map((difficulty) => ({
+      difficulty,
+      count: questions.filter((question) => question.difficulty === difficulty).length
+    }));
+    const byTheme = questionThemes
+      .map((theme) => ({
+        theme,
+        count: questions.filter((question) => question.category === theme).length
+      }))
+      .filter((item) => item.count > 0)
+      .sort((a, b) => b.count - a.count || a.theme.localeCompare(b.theme));
+    const withImages = questions.filter((question) => question.imageUrl).length;
+    const withExplanation = questions.filter((question) => question.explanation).length;
+    const advanced = byDifficulty.find((item) => item.difficulty === "advanced")?.count || 0;
+
+    return { advanced, byDifficulty, byTheme, withExplanation, withImages };
+  }, [questions]);
+
   function handleNewQuestion() {
     newQuestion();
     setEditorVisible(true);
+    setTeacherTab("questions");
   }
 
   function handleEditQuestion(question) {
     editQuestion(question);
     setEditorVisible(true);
+    setTeacherTab("questions");
   }
 
   function closeEditor() {
@@ -999,9 +1021,20 @@ function TeacherBank({
   return (
     <section className="teacher-layout">
       <div className="teacher-subnav">
-        <button className="ghost" type="button">Estadísticas</button>
-        <button className="ghost" type="button">Ranking</button>
-        <button className="active" type="button">Preguntas</button>
+        <button
+          className={teacherTab === "stats" ? "active" : "ghost"}
+          onClick={() => setTeacherTab("stats")}
+          type="button"
+        >
+          Estadísticas
+        </button>
+        <button
+          className={teacherTab === "questions" ? "active" : "ghost"}
+          onClick={() => setTeacherTab("questions")}
+          type="button"
+        >
+          Preguntas
+        </button>
         <button className="ghost" onClick={() => fileInputRef.current?.click()} type="button">Importar Excel</button>
         <input
           accept=".xlsx,.xls,.csv"
@@ -1015,198 +1048,256 @@ function TeacherBank({
         />
       </div>
 
-      <div className="teacher-bank-head">
-        <p>
-          <span>{questions.length} preguntas</span> · <strong>{filteredBankQuestions.length} visibles</strong>
-        </p>
-        <button className="add-link" onClick={handleNewQuestion} type="button">+ Nueva</button>
-      </div>
-
-      <section className="question-filter-panel">
-        <div className="filter-row">
-          <strong>Buscar:</strong>
-          <input
-            placeholder="Buscar por enunciado, tema o explicación..."
-            value={bankSearch}
-            onChange={(event) => setBankSearch(event.target.value)}
-          />
-        </div>
-        <div className="filter-row">
-          <strong>Tema:</strong>
-          <select value={bankTheme} onChange={(event) => setBankTheme(event.target.value)}>
-            <option value="Todos">Todos los temas ({questions.length})</option>
-            {questionThemes.map((theme) => (
-              <option key={theme} value={theme}>
-                {theme}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="filter-row">
-          <strong>Dificultad:</strong>
-          <div className="segmented-filter">
-            <button className={bankDifficulty === "Todas" ? "active" : ""} onClick={() => setBankDifficulty("Todas")} type="button">
-              Todas
-            </button>
-            {Object.entries(difficultyLabels).map(([value, label]) => (
-              <button
-                className={bankDifficulty === value ? "active" : ""}
-                key={value}
-                onClick={() => setBankDifficulty(value)}
-                type="button"
-              >
-                {label}
-              </button>
-            ))}
+      {teacherTab === "stats" ? (
+        <TeacherStats questions={questions} stats={bankStats} />
+      ) : (
+        <>
+          <div className="teacher-bank-head">
+            <p>
+              <span>{questions.length} preguntas</span> · <strong>{filteredBankQuestions.length} visibles</strong>
+            </p>
+            <button className="add-link" onClick={handleNewQuestion} type="button">+ Nueva</button>
           </div>
-        </div>
-        <details className="import-helper">
-          <summary>Formato Excel esperado</summary>
-          <p>
-            Usa el botón <b>Importar Excel</b> para subir archivos .xlsx, .xls o .csv.
-          </p>
-          <p>
-            tema_principal, tema, dificultad, enunciado, respuesta_correcta, distractor_1,
-            distractor_2, distractor_3, explicación, idea_clave.
-          </p>
-        </details>
-        {importMessage && <p className="import-message">{importMessage}</p>}
-      </section>
 
-      {editorVisible && (
-        <article className="panel editor teacher-editor-panel">
-          <div className="section-heading editor-heading">
-            <h2>{editingId ? "Editar pregunta" : "Nueva pregunta"}</h2>
-            <div className="button-row">
-              <button className="secondary" onClick={closeEditor} type="button">
-                Cerrar editor
-              </button>
-              {editingId && (
-                <button className="danger" onClick={() => deleteQuestion(editingId)} type="button">
-                  Eliminar
-                </button>
-              )}
+          <section className="question-filter-panel">
+            <div className="filter-row">
+              <strong>Buscar:</strong>
+              <input
+                placeholder="Buscar por enunciado, tema o explicación..."
+                value={bankSearch}
+                onChange={(event) => setBankSearch(event.target.value)}
+              />
             </div>
-          </div>
-          <div className="form-grid">
-            <label>
-              Tema principal
-              <select value={editorQuestion.category} onChange={(event) => updateEditorField("category", event.target.value)}>
-                <option value="">Selecciona un tema</option>
+            <div className="filter-row">
+              <strong>Tema:</strong>
+              <select value={bankTheme} onChange={(event) => setBankTheme(event.target.value)}>
+                <option value="Todos">Todos los temas ({questions.length})</option>
                 {questionThemes.map((theme) => (
                   <option key={theme} value={theme}>
                     {theme}
                   </option>
                 ))}
               </select>
-            </label>
-            <label>
-              Tema
-              <input value={editorQuestion.topic} onChange={(event) => updateEditorField("topic", event.target.value)} />
-            </label>
-            <label>
-              Dificultad
-              <select value={editorQuestion.difficulty} onChange={(event) => updateEditorField("difficulty", event.target.value)}>
+            </div>
+            <div className="filter-row">
+              <strong>Dificultad:</strong>
+              <div className="segmented-filter">
+                <button className={bankDifficulty === "Todas" ? "active" : ""} onClick={() => setBankDifficulty("Todas")} type="button">
+                  Todas
+                </button>
                 {Object.entries(difficultyLabels).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="wide">
-              Enunciado
-              <textarea value={editorQuestion.stem} onChange={(event) => updateEditorField("stem", event.target.value)} />
-            </label>
-            <label className="wide">
-              URL de imagen
-              <input value={editorQuestion.imageUrl} onChange={(event) => updateEditorField("imageUrl", event.target.value)} />
-            </label>
-            {editorQuestion.options.map((option, index) => (
-              <label key={option.id}>
-                {index === 0 ? "Respuesta correcta" : `Distractor ${index}`}
-                <input value={option.text} onChange={(event) => updateOption(index, event.target.value)} />
-              </label>
-            ))}
-            <label className="wide">
-              Explicación
-              <textarea value={editorQuestion.explanation} onChange={(event) => updateEditorField("explanation", event.target.value)} />
-            </label>
-            <label className="wide">
-              Idea clave
-              <input value={editorQuestion.keyPoint} onChange={(event) => updateEditorField("keyPoint", event.target.value)} />
-            </label>
-          </div>
-          <div className="editor-actions">
-            <button onClick={saveQuestion} type="button">
-              Guardar pregunta
-            </button>
-          </div>
-        </article>
-      )}
-
-      <aside className="bank-list">
-        <div className="bank-table" aria-label="Banco de preguntas">
-          {filteredBankQuestions.map((question) => {
-            const correctOption = question.options.find((option) => option.isCorrect);
-            const isExpanded = expandedQuestionId === question.id;
-
-            return (
-              <article className={editingId === question.id ? "bank-row selected" : "bank-row"} key={question.id}>
-                <span className="bank-row-level">
-                  <span className={`difficulty ${question.difficulty}`}>{difficultyLabels[question.difficulty]}</span>
-                </span>
-                <span className="bank-row-question">
-                  <b>{question.stem}</b>
-                </span>
-                <span className="bank-row-topic">
-                  <b>{question.category}</b>
-                  <small>{question.topic || "Sin subtema"}</small>
-                </span>
-                <span className="bank-row-answer">{correctOption?.text || "Sin respuesta"}</span>
-                <span className="bank-row-actions">
-                  <button className="secondary" onClick={() => handleEditQuestion(question)} type="button">
-                    Editar
-                  </button>
                   <button
-                    className="ghost compact"
-                    onClick={() => setExpandedQuestionId((current) => (current === question.id ? null : question.id))}
+                    className={bankDifficulty === value ? "active" : ""}
+                    key={value}
+                    onClick={() => setBankDifficulty(value)}
                     type="button"
                   >
-                    {isExpanded ? "Ocultar" : "Ver completa"}
+                    {label}
                   </button>
-                </span>
-                {isExpanded && (
-                  <div className="bank-row-detail">
-                    <p>
-                      <b>Pregunta:</b> {question.stem}
-                    </p>
-                    <p>
-                      <b>Respuesta correcta:</b> {correctOption?.text || "Sin respuesta"}
-                    </p>
-                    <p>
-                      <b>Opciones:</b> {question.options.map((option) => option.text).join(" · ")}
-                    </p>
-                    {question.explanation && (
-                      <p>
-                        <b>Explicación:</b> {question.explanation}
-                      </p>
-                    )}
-                    {question.keyPoint && (
-                      <p>
-                        <b>Idea clave:</b> {question.keyPoint}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </article>
-            );
-          })}
-          {!filteredBankQuestions.length && (
-            <div className="empty-bank">No hay preguntas que coincidan con los filtros.</div>
+                ))}
+              </div>
+            </div>
+            <details className="import-helper">
+              <summary>Formato Excel esperado</summary>
+              <p>
+                Usa el botón <b>Importar Excel</b> para subir archivos .xlsx, .xls o .csv.
+              </p>
+              <p>
+                tema_principal, tema, dificultad, enunciado, respuesta_correcta, distractor_1,
+                distractor_2, distractor_3, explicación, idea_clave.
+              </p>
+            </details>
+            {importMessage && <p className="import-message">{importMessage}</p>}
+          </section>
+
+          {editorVisible && (
+            <article className="panel editor teacher-editor-panel">
+              <div className="section-heading editor-heading">
+                <h2>{editingId ? "Editar pregunta" : "Nueva pregunta"}</h2>
+                <div className="button-row">
+                  <button className="secondary" onClick={closeEditor} type="button">
+                    Cerrar editor
+                  </button>
+                  {editingId && (
+                    <button className="danger" onClick={() => deleteQuestion(editingId)} type="button">
+                      Eliminar
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="form-grid">
+                <label>
+                  Tema principal
+                  <select value={editorQuestion.category} onChange={(event) => updateEditorField("category", event.target.value)}>
+                    <option value="">Selecciona un tema</option>
+                    {questionThemes.map((theme) => (
+                      <option key={theme} value={theme}>
+                        {theme}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Tema
+                  <input value={editorQuestion.topic} onChange={(event) => updateEditorField("topic", event.target.value)} />
+                </label>
+                <label>
+                  Dificultad
+                  <select value={editorQuestion.difficulty} onChange={(event) => updateEditorField("difficulty", event.target.value)}>
+                    {Object.entries(difficultyLabels).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="wide">
+                  Enunciado
+                  <textarea value={editorQuestion.stem} onChange={(event) => updateEditorField("stem", event.target.value)} />
+                </label>
+                <label className="wide">
+                  URL de imagen
+                  <input value={editorQuestion.imageUrl} onChange={(event) => updateEditorField("imageUrl", event.target.value)} />
+                </label>
+                {editorQuestion.options.map((option, index) => (
+                  <label key={option.id}>
+                    {index === 0 ? "Respuesta correcta" : `Distractor ${index}`}
+                    <input value={option.text} onChange={(event) => updateOption(index, event.target.value)} />
+                  </label>
+                ))}
+                <label className="wide">
+                  Explicación
+                  <textarea value={editorQuestion.explanation} onChange={(event) => updateEditorField("explanation", event.target.value)} />
+                </label>
+                <label className="wide">
+                  Idea clave
+                  <input value={editorQuestion.keyPoint} onChange={(event) => updateEditorField("keyPoint", event.target.value)} />
+                </label>
+              </div>
+              <div className="editor-actions">
+                <button onClick={saveQuestion} type="button">
+                  Guardar pregunta
+                </button>
+              </div>
+            </article>
           )}
-        </div>
-      </aside>
+
+          <aside className="bank-list">
+            <div className="bank-table" aria-label="Banco de preguntas">
+              {filteredBankQuestions.map((question) => {
+                const correctOption = question.options.find((option) => option.isCorrect);
+                const isExpanded = expandedQuestionId === question.id;
+
+                return (
+                  <article className={editingId === question.id ? "bank-row selected" : "bank-row"} key={question.id}>
+                    <span className="bank-row-level">
+                      <span className={`difficulty ${question.difficulty}`}>{difficultyLabels[question.difficulty]}</span>
+                    </span>
+                    <span className="bank-row-question">
+                      <b>{question.stem}</b>
+                    </span>
+                    <span className="bank-row-topic">
+                      <b>{question.category}</b>
+                      <small>{question.topic || "Sin subtema"}</small>
+                    </span>
+                    <span className="bank-row-answer">{correctOption?.text || "Sin respuesta"}</span>
+                    <span className="bank-row-actions">
+                      <button className="secondary" onClick={() => handleEditQuestion(question)} type="button">
+                        Editar
+                      </button>
+                      <button
+                        className="ghost compact"
+                        onClick={() => setExpandedQuestionId((current) => (current === question.id ? null : question.id))}
+                        type="button"
+                      >
+                        {isExpanded ? "Ocultar" : "Ver completa"}
+                      </button>
+                    </span>
+                    {isExpanded && (
+                      <div className="bank-row-detail">
+                        <p>
+                          <b>Pregunta:</b> {question.stem}
+                        </p>
+                        <p>
+                          <b>Respuesta correcta:</b> {correctOption?.text || "Sin respuesta"}
+                        </p>
+                        <p>
+                          <b>Opciones:</b> {question.options.map((option) => option.text).join(" · ")}
+                        </p>
+                        {question.explanation && (
+                          <p>
+                            <b>Explicación:</b> {question.explanation}
+                          </p>
+                        )}
+                        {question.keyPoint && (
+                          <p>
+                            <b>Idea clave:</b> {question.keyPoint}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+              {!filteredBankQuestions.length && (
+                <div className="empty-bank">No hay preguntas que coincidan con los filtros.</div>
+              )}
+            </div>
+          </aside>
+        </>
+      )}
+    </section>
+  );
+}
+
+function TeacherStats({ questions, stats }) {
+  const maxThemeCount = Math.max(1, ...stats.byTheme.map((item) => item.count));
+  const total = Math.max(1, questions.length);
+
+  return (
+    <section className="teacher-stats">
+      <div className="stats-grid">
+        <Metric label="Preguntas en banco" value={questions.length} />
+        <Metric label="Con imagen" value={stats.withImages} />
+        <Metric label="Con explicación" value={stats.withExplanation} />
+        <Metric label="Avanzadas" value={stats.advanced} />
+      </div>
+
+      <div className="stats-panels">
+        <article className="panel stat-panel">
+          <h3>Dificultad</h3>
+          <div className="stat-bars">
+            {stats.byDifficulty.map((item) => (
+              <div className="stat-row" key={item.difficulty}>
+                <span>{difficultyLabels[item.difficulty]}</span>
+                <div className="stat-track">
+                  <i style={{ width: `${(item.count / total) * 100}%` }} />
+                </div>
+                <b>{item.count}</b>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="panel stat-panel">
+          <h3>Temas con preguntas</h3>
+          <div className="stat-bars">
+            {stats.byTheme.length ? (
+              stats.byTheme.map((item) => (
+                <div className="stat-row" key={item.theme}>
+                  <span>{item.theme}</span>
+                  <div className="stat-track">
+                    <i style={{ width: `${(item.count / maxThemeCount) * 100}%` }} />
+                  </div>
+                  <b>{item.count}</b>
+                </div>
+              ))
+            ) : (
+              <p className="empty-stat">Todavía no hay preguntas clasificadas por tema.</p>
+            )}
+          </div>
+        </article>
+      </div>
     </section>
   );
 }

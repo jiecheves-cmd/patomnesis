@@ -1137,6 +1137,69 @@ button.ghost {
   background: rgba(255, 255, 255, 0.42);
 }
 
+.teacher-stats {
+  display: grid;
+  gap: 16px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.stats-panels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.stat-panel h3 {
+  margin: 0 0 14px;
+  color: var(--ink);
+}
+
+.stat-bars {
+  display: grid;
+  gap: 12px;
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: minmax(130px, 1fr) minmax(160px, 2fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.stat-row span {
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.stat-row b {
+  color: var(--ink);
+}
+
+.stat-track {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(251, 113, 133, 0.16);
+  overflow: hidden;
+}
+
+.stat-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--brand), var(--brand-2));
+}
+
+.empty-stat {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 800;
+}
+
 .filter-row {
   display: grid;
   grid-template-columns: 110px minmax(0, 1fr);
@@ -1422,8 +1485,14 @@ th {
   .student-launch,
   .student-dashboard,
   .launch-card,
+  .stats-grid,
+  .stats-panels,
   .teacher-layout,
   .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-row {
     grid-template-columns: 1fr;
   }
 
