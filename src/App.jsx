@@ -1002,7 +1002,6 @@ function TeacherBank({
         <button className="ghost" type="button">Estadísticas</button>
         <button className="ghost" type="button">Ranking</button>
         <button className="active" type="button">Preguntas</button>
-        <button className="ghost" type="button">Generar IA</button>
         <button className="ghost" onClick={() => fileInputRef.current?.click()} type="button">Importar</button>
         <input
           accept=".xlsx,.xls,.csv"
