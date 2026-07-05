@@ -7,3 +7,142 @@ export const supabase =
   supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
 export const isSupabaseConfigured = Boolean(supabase);
+
+function mapQuestion(row) {
+  const options = [...(row.question_options || [])]
+    .sort((a, b) => a.position - b.position)
+    .map((option) => ({
+      id: option.id,
+      text: option.option_text,
+      isCorrect: option.is_correct
+    }));
+
+  return {
+    id: row.id,
+    category: row.category,
+    topic: row.topic || "",
+    difficulty: row.difficulty,
+    stem: row.stem,
+    imageUrl: row.image_path || "",
+    options,
+    explanation: row.explanation || "",
+    keyPoint: row.key_point || ""
+  };
+}
+
+export async function bootstrapSupabaseSession(role = "student") {
+  if (!supabase) return { profile: null, session: null, user: null };
+
+  const { data: currentSession } = await supabase.auth.getSession();
+  let session = currentSession.session;
+
+  if (!session) {
+    const { data, error } = await supabase.auth.signInAnonymously();
+    if (error) throw error;
+    session = data.session;
+  }
+
+  const user = session?.user;
+  if (!user) return { profile: null, session, user: null };
+
+  const profile = await ensureProfile(user, role);
+  return { profile, session, user };
+}
+
+export async function ensureProfile(user, role = "student") {
+  if (!supabase || !user) return null;
+
+  const email = user.email || `anon-${user.id}@patomnesis.local`;
+  const fullName = user.user_metadata?.full_name || null;
+
+  const { data: existingProfile, error: readError } = await supabase
+    .from("profiles")
+    .select()
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (readError) throw readError;
+  if (existingProfile) return existingProfile;
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .insert({
+      id: user.id,
+      email,
+      full_name: fullName,
+      role: role === "student" ? role : "student"
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchPublishedQuestions() {
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("questions")
+    .select("*, question_options(*)")
+    .eq("status", "published")
+    .order("created_at", { ascending: true });
+
+  if (error) throw error;
+  return (data || []).map(mapQuestion).filter((question) => question.options.length >= 2);
+}
+
+export async function createQuizAttempt({ categoryFilter, difficultyFilter, mode, studentId, total }) {
+  if (!supabase || !studentId) return null;
+
+  const { data, error } = await supabase
+    .from("quiz_attempts")
+    .insert({
+      student_id: studentId,
+      mode,
+      category_filter: categoryFilter,
+      difficulty_filter: difficultyFilter,
+      total
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function finishQuizAttempt({ attemptId, score, total }) {
+  if (!supabase || !attemptId) return null;
+
+  const { data, error } = await supabase
+    .from("quiz_attempts")
+    .update({
+      finished_at: new Date().toISOString(),
+      score,
+      total
+    })
+    .eq("id", attemptId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function recordQuizAnswer({ attemptId, isCorrect, questionId, selectedOptionId }) {
+  if (!supabase || !attemptId || !questionId) return null;
+
+  const { data, error } = await supabase
+    .from("quiz_answers")
+    .insert({
+      attempt_id: attemptId,
+      question_id: questionId,
+      selected_option_id: selectedOptionId,
+      is_correct: isCorrect
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}

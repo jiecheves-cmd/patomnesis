@@ -1,6 +1,13 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { difficultyLabels, questionThemes, roleLabels, seedQuestions } from "./data/questions.js";
-import { isSupabaseConfigured } from "./lib/supabase.js";
+import {
+  bootstrapSupabaseSession,
+  createQuizAttempt,
+  fetchPublishedQuestions,
+  finishQuizAttempt,
+  isSupabaseConfigured,
+  recordQuizAnswer
+} from "./lib/supabase.js";
 
 const emptyQuestion = {
   id: "",
@@ -290,6 +297,10 @@ function getSessionUser(session) {
   };
 }
 
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
 function App() {
   const [session] = useState(() => getInitialSession());
   const [role, setRole] = useState(session.viewRole);
@@ -304,9 +315,16 @@ function App() {
   const [selectedOptionId, setSelectedOptionId] = useState(null);
   const [answers, setAnswers] = useState([]);
   const [answerHistory, setAnswerHistory] = useState([]);
+  const [activeAttemptId, setActiveAttemptId] = useState(null);
+  const [attemptFinished, setAttemptFinished] = useState(false);
   const [editorQuestion, setEditorQuestion] = useState(() => cloneQuestion(emptyQuestion));
   const [editingId, setEditingId] = useState(null);
   const [importMessage, setImportMessage] = useState("");
+  const [supabaseUser, setSupabaseUser] = useState(null);
+  const [supabaseProfile, setSupabaseProfile] = useState(null);
+  const [supabaseStatus, setSupabaseStatus] = useState(
+    isSupabaseConfigured ? "Conectando Supabase..." : "Demo local"
+  );
 
   const categories = useMemo(
     () =>
@@ -348,7 +366,73 @@ function App() {
   );
 
   const availableRoles = roleAccess[session.userRole];
-  const currentUser = useMemo(() => getSessionUser(session), [session]);
+  const currentUser = useMemo(() => {
+    if (!supabaseUser) return getSessionUser(session);
+
+    return {
+      id: supabaseUser.id,
+      initials: (supabaseProfile?.full_name || supabaseProfile?.email || "US")
+        .slice(0, 2)
+        .toUpperCase(),
+      name: supabaseProfile?.full_name || supabaseProfile?.email || "Usuario Supabase",
+      role: supabaseProfile?.role || "student"
+    };
+  }, [session, supabaseProfile, supabaseUser]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+
+    let cancelled = false;
+
+    async function connectSupabase() {
+      try {
+        setSupabaseStatus("Conectando Supabase...");
+        const [remoteQuestions, auth] = await Promise.all([
+          fetchPublishedQuestions(),
+          bootstrapSupabaseSession("student").catch((error) => {
+            console.warn("No se pudo iniciar sesión anónima en Supabase", error);
+            return { profile: null, user: null };
+          })
+        ]);
+
+        if (cancelled) return;
+
+        if (remoteQuestions.length) {
+          setQuestions(remoteQuestions);
+          setDeck(prepareDeck(remoteQuestions, 6));
+        }
+
+        setSupabaseUser(auth.user);
+        setSupabaseProfile(auth.profile);
+        setSupabaseStatus(
+          auth.user
+            ? `Supabase conectado${remoteQuestions.length ? ` · ${remoteQuestions.length} preguntas` : ""}`
+            : `Supabase lectura${remoteQuestions.length ? ` · ${remoteQuestions.length} preguntas` : ""}`
+        );
+      } catch (error) {
+        if (!cancelled) {
+          console.error("No se pudo conectar Supabase", error);
+          setSupabaseStatus("Supabase no disponible · demo local");
+        }
+      }
+    }
+
+    connectSupabase();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!activeAttemptId || attemptFinished || !showQuiz || !deck.length || currentIndex < deck.length) return;
+
+    const score = answers.filter((answer) => answer.isCorrect).length;
+    setAttemptFinished(true);
+    finishQuizAttempt({ attemptId: activeAttemptId, score, total: answers.length }).catch((error) => {
+      console.warn("No se pudo cerrar el intento en Supabase", error);
+    });
+  }, [activeAttemptId, answers, attemptFinished, currentIndex, deck.length, showQuiz]);
 
   function changeRole(nextRole) {
     setRole(nextRole);
@@ -357,7 +441,28 @@ function App() {
     setSelectedOptionId(null);
   }
 
-  function startQuiz(source = filteredQuestions, mode = "practice") {
+  async function createAttemptForDeck(nextDeck, mode, categoryFilter = "Todas", difficultyFilter = "Todas") {
+    setActiveAttemptId(null);
+    setAttemptFinished(false);
+
+    if (!supabaseUser || !nextDeck.length) return;
+
+    try {
+      const attempt = await createQuizAttempt({
+        categoryFilter,
+        difficultyFilter,
+        mode,
+        studentId: supabaseUser.id,
+        total: nextDeck.length
+      });
+      setActiveAttemptId(attempt?.id || null);
+    } catch (error) {
+      console.warn("No se pudo crear el intento en Supabase", error);
+      setSupabaseStatus("Supabase conectado · guardado pendiente");
+    }
+  }
+
+  async function startQuiz(source = filteredQuestions, mode = "practice") {
     const nextDeck = prepareDeck(source, questionCount);
     setDeck(nextDeck);
     setCurrentIndex(0);
@@ -365,6 +470,12 @@ function App() {
     setAnswers([]);
     setQuizMode(mode);
     setShowQuiz(true);
+    await createAttemptForDeck(
+      nextDeck,
+      mode,
+      selectedCategories.length ? selectedCategories.join(", ") : "Todas",
+      difficulty
+    );
   }
 
   function startQuickQuiz() {
@@ -373,7 +484,7 @@ function App() {
     startQuiz(questions);
   }
 
-  function startSmartSession() {
+  async function startSmartSession() {
     const smartDeck = selectSmartQuestions(questions, answerHistory, Math.min(10, questions.length));
     setSelectedCategories([]);
     setDifficulty("Todas");
@@ -383,6 +494,7 @@ function App() {
     setAnswers([]);
     setQuizMode("practice");
     setShowQuiz(true);
+    await createAttemptForDeck(smartDeck, "smart", "Sesión inteligente", "Adaptativa");
   }
 
   function startDifficultyQuiz(nextDifficulty) {
@@ -419,6 +531,17 @@ function App() {
 
     setAnswers((previous) => [...previous, nextAnswer]);
     setAnswerHistory((previous) => [...previous, nextAnswer]);
+
+    if (activeAttemptId && isUuid(currentQuestion.id) && isUuid(option.id)) {
+      recordQuizAnswer({
+        attemptId: activeAttemptId,
+        isCorrect: option.isCorrect,
+        questionId: currentQuestion.id,
+        selectedOptionId: option.id
+      }).catch((error) => {
+        console.warn("No se pudo guardar la respuesta en Supabase", error);
+      });
+    }
 
     if (quizMode === "exam") {
       setSelectedOptionId(null);
@@ -522,8 +645,8 @@ function App() {
             </div>
           </div>
           <div className="profile-actions">
-            <span className="avatar">SU</span>
-            <span>{roleLabels[session.userRole]}</span>
+            <span className="avatar">{currentUser.initials}</span>
+            <span>{roleLabels[currentUser.role] || roleLabels[session.userRole]}</span>
             <button className="ghost" type="button">
               Mi perfil
             </button>
@@ -556,7 +679,7 @@ function App() {
             <button type="button">Liga</button>
             <button type="button">Hall of Fame</button>
             <span className="supabase-pill">
-              {isSupabaseConfigured ? "Supabase conectado" : "Demo local"}
+              {supabaseStatus}
             </span>
           </nav>
         )}

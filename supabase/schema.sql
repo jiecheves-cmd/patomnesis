@@ -76,13 +76,51 @@ alter table public.question_options enable row level security;
 alter table public.quiz_attempts enable row level security;
 alter table public.quiz_answers enable row level security;
 
+drop policy if exists "Profiles can read own profile" on public.profiles;
+drop policy if exists "Profiles can create own profile" on public.profiles;
+drop policy if exists "Profiles can update own profile" on public.profiles;
+drop policy if exists "Published questions are readable" on public.questions;
+drop policy if exists "Teachers can manage questions" on public.questions;
+drop policy if exists "Published options are readable" on public.question_options;
+drop policy if exists "Teachers can manage options" on public.question_options;
+drop policy if exists "Students can create own attempts" on public.quiz_attempts;
+drop policy if exists "Students can read own attempts" on public.quiz_attempts;
+drop policy if exists "Students can update own attempts" on public.quiz_attempts;
+drop policy if exists "Supervisors can read attempts" on public.quiz_attempts;
+drop policy if exists "Students can create answers for own attempts" on public.quiz_answers;
+drop policy if exists "Students can read own answers" on public.quiz_answers;
+drop policy if exists "Supervisors can read answers" on public.quiz_answers;
+
 create policy "Profiles can read own profile"
   on public.profiles for select
   using (auth.uid() = id);
 
+create policy "Profiles can create own profile"
+  on public.profiles for insert
+  with check (auth.uid() = id and role = 'student');
+
 create policy "Published questions are readable"
   on public.questions for select
   using (status = 'published');
+
+create policy "Teachers can manage questions"
+  on public.questions for all
+  using (
+    exists (
+      select 1
+      from public.profiles
+      where profiles.id = auth.uid()
+      and profiles.role in ('teacher', 'supervisor', 'admin')
+    )
+  )
+  with check (
+    exists (
+      select 1
+      from public.profiles
+      where profiles.id = auth.uid()
+      and profiles.role in ('teacher', 'supervisor', 'admin')
+    )
+  );
 
 create policy "Published options are readable"
   on public.question_options for select
@@ -95,6 +133,25 @@ create policy "Published options are readable"
     )
   );
 
+create policy "Teachers can manage options"
+  on public.question_options for all
+  using (
+    exists (
+      select 1
+      from public.profiles
+      where profiles.id = auth.uid()
+      and profiles.role in ('teacher', 'supervisor', 'admin')
+    )
+  )
+  with check (
+    exists (
+      select 1
+      from public.profiles
+      where profiles.id = auth.uid()
+      and profiles.role in ('teacher', 'supervisor', 'admin')
+    )
+  );
+
 create policy "Students can create own attempts"
   on public.quiz_attempts for insert
   with check (auth.uid() = student_id);
@@ -102,6 +159,22 @@ create policy "Students can create own attempts"
 create policy "Students can read own attempts"
   on public.quiz_attempts for select
   using (auth.uid() = student_id);
+
+create policy "Students can update own attempts"
+  on public.quiz_attempts for update
+  using (auth.uid() = student_id)
+  with check (auth.uid() = student_id);
+
+create policy "Supervisors can read attempts"
+  on public.quiz_attempts for select
+  using (
+    exists (
+      select 1
+      from public.profiles
+      where profiles.id = auth.uid()
+      and profiles.role in ('supervisor', 'admin')
+    )
+  );
 
 create policy "Students can create answers for own attempts"
   on public.quiz_answers for insert
@@ -111,6 +184,17 @@ create policy "Students can create answers for own attempts"
       from public.quiz_attempts
       where quiz_attempts.id = quiz_answers.attempt_id
       and quiz_attempts.student_id = auth.uid()
+    )
+  );
+
+create policy "Supervisors can read answers"
+  on public.quiz_answers for select
+  using (
+    exists (
+      select 1
+      from public.profiles
+      where profiles.id = auth.uid()
+      and profiles.role in ('supervisor', 'admin')
     )
   );
 
