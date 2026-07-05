@@ -301,6 +301,12 @@ function isUuid(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
+function describeSupabaseError(error) {
+  const message = error?.message || error?.error_description || error?.details || "error desconocido";
+  if (message.length > 90) return `${message.slice(0, 90)}...`;
+  return message;
+}
+
 function App() {
   const [session] = useState(() => getInitialSession());
   const [role, setRole] = useState(session.viewRole);
@@ -385,36 +391,57 @@ function App() {
     let cancelled = false;
 
     async function connectSupabase() {
-      try {
-        setSupabaseStatus("Conectando Supabase...");
-        const [remoteQuestions, auth] = await Promise.all([
-          fetchPublishedQuestions(),
-          bootstrapSupabaseSession("student").catch((error) => {
-            console.warn("No se pudo iniciar sesión anónima en Supabase", error);
-            return { profile: null, user: null };
-          })
-        ]);
+      setSupabaseStatus("Conectando Supabase...");
 
-        if (cancelled) return;
+      const results = await Promise.allSettled([
+        fetchPublishedQuestions(),
+        bootstrapSupabaseSession("student")
+      ]);
 
-        if (remoteQuestions.length) {
-          setQuestions(remoteQuestions);
-          setDeck(prepareDeck(remoteQuestions, 6));
-        }
+      if (cancelled) return;
 
-        setSupabaseUser(auth.user);
-        setSupabaseProfile(auth.profile);
-        setSupabaseStatus(
-          auth.user
-            ? `Supabase conectado${remoteQuestions.length ? ` · ${remoteQuestions.length} preguntas` : ""}`
-            : `Supabase lectura${remoteQuestions.length ? ` · ${remoteQuestions.length} preguntas` : ""}`
-        );
-      } catch (error) {
-        if (!cancelled) {
-          console.error("No se pudo conectar Supabase", error);
-          setSupabaseStatus("Supabase no disponible · demo local");
-        }
+      const [questionsResult, authResult] = results;
+      const remoteQuestions = questionsResult.status === "fulfilled" ? questionsResult.value : [];
+      const auth = authResult.status === "fulfilled" ? authResult.value : { profile: null, user: null };
+
+      if (questionsResult.status === "rejected") {
+        console.warn("No se pudieron leer preguntas de Supabase", questionsResult.reason);
       }
+
+      if (authResult.status === "rejected") {
+        console.warn("No se pudo iniciar sesión anónima en Supabase", authResult.reason);
+      }
+
+      if (remoteQuestions.length) {
+        setQuestions(remoteQuestions);
+        setDeck(prepareDeck(remoteQuestions, 6));
+      }
+
+      setSupabaseUser(auth.user);
+      setSupabaseProfile(auth.profile);
+
+      if (auth.user && questionsResult.status === "fulfilled") {
+        setSupabaseStatus(
+          remoteQuestions.length
+            ? `Supabase conectado · ${remoteQuestions.length} preguntas`
+            : "Supabase conectado · sin preguntas publicadas"
+        );
+        return;
+      }
+
+      if (auth.user) {
+        setSupabaseStatus(`Supabase conectado · preguntas: ${describeSupabaseError(questionsResult.reason)}`);
+        return;
+      }
+
+      if (questionsResult.status === "fulfilled") {
+        setSupabaseStatus(`Supabase lectura · Auth: ${describeSupabaseError(authResult.reason)}`);
+        return;
+      }
+
+      setSupabaseStatus(
+        `Supabase no disponible · ${describeSupabaseError(authResult.reason || questionsResult.reason)}`
+      );
     }
 
     connectSupabase();
