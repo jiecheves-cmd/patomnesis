@@ -424,6 +424,12 @@ p {
   font-size: 0.8rem;
 }
 
+.avatar.small {
+  width: 28px;
+  height: 28px;
+  font-size: 0.72rem;
+}
+
 button.ghost {
   padding: 8px 14px;
   border: 1px solid rgba(126, 34, 206, 0.16);
@@ -1198,6 +1204,62 @@ button.ghost {
   margin: 0;
   color: var(--muted);
   font-weight: 800;
+}
+
+.supervisor-dashboard {
+  display: grid;
+  gap: 16px;
+}
+
+.user-stats-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.user-stats-panel h3 {
+  margin: 0;
+}
+
+.table-note {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.user-cell {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+  min-width: 150px;
+}
+
+.precision-pill {
+  display: inline-flex;
+  min-width: 56px;
+  justify-content: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-weight: 900;
+}
+
+.precision-pill.good {
+  background: #dcfce7;
+  color: #047857;
+}
+
+.precision-pill.mid {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.precision-pill.low {
+  background: #fee2e2;
+  color: #b91c1c;
 }
 
 .filter-row {

@@ -281,6 +281,15 @@ function getSmartSessionSummary(questions, history) {
   return { criteria, weakTopics };
 }
 
+function getSessionUser(session) {
+  return {
+    id: `local-${session.userRole}`,
+    initials: session.userRole === "student" ? "AL" : session.userRole === "teacher" ? "PR" : "SU",
+    name: roleLabels[session.userRole],
+    role: session.userRole
+  };
+}
+
 function App() {
   const [session] = useState(() => getInitialSession());
   const [role, setRole] = useState(session.viewRole);
@@ -339,6 +348,7 @@ function App() {
   );
 
   const availableRoles = roleAccess[session.userRole];
+  const currentUser = useMemo(() => getSessionUser(session), [session]);
 
   function changeRole(nextRole) {
     setRole(nextRole);
@@ -394,11 +404,17 @@ function App() {
     const correctOption = currentQuestion.options.find((item) => item.isCorrect);
     const nextAnswer = {
       questionId: currentQuestion.id,
+      questionStem: currentQuestion.stem,
       category: currentQuestion.category,
       difficulty: currentQuestion.difficulty,
       selectedOptionId: option.id,
       correctOptionId: correctOption.id,
-      isCorrect: option.isCorrect
+      isCorrect: option.isCorrect,
+      userId: currentUser.id,
+      userInitials: currentUser.initials,
+      userName: currentUser.name,
+      userRole: currentUser.role,
+      answeredAt: new Date().toISOString()
     };
 
     setAnswers((previous) => [...previous, nextAnswer]);
@@ -603,7 +619,9 @@ function App() {
         />
       )}
 
-      {role === "supervisor" && <SupervisorDashboard answers={answers} questions={questions} />}
+      {role === "supervisor" && (
+        <SupervisorDashboard answers={answerHistory} currentUser={currentUser} questions={questions} />
+      )}
     </main>
   );
 }
@@ -1302,8 +1320,8 @@ function TeacherStats({ questions, stats }) {
   );
 }
 
-function SupervisorDashboard({ answers, questions }) {
-  const rows = useMemo(() => {
+function SupervisorDashboard({ answers, currentUser, questions }) {
+  const topicRows = useMemo(() => {
     const grouped = new Map();
     answers.forEach((answer) => {
       const current = grouped.get(answer.category) || { correct: 0, wrong: 0 };
@@ -1317,42 +1335,160 @@ function SupervisorDashboard({ answers, questions }) {
     });
   }, [answers]);
 
-  const weakCategory = rows.length ? [...rows].sort((a, b) => a.precision - b.precision)[0].category : "Sin datos";
+  const userRows = useMemo(() => {
+    const grouped = new Map();
+
+    answers.forEach((answer) => {
+      const userId = answer.userId || currentUser.id;
+      const current = grouped.get(userId) || {
+        id: userId,
+        initials: answer.userInitials || currentUser.initials,
+        name: answer.userName || currentUser.name,
+        role: answer.userRole || currentUser.role,
+        correct: 0,
+        wrong: 0,
+        total: 0,
+        lastWrongCategory: "Sin fallos",
+        lastWrongQuestion: ""
+      };
+
+      current.total += 1;
+
+      if (answer.isCorrect) {
+        current.correct += 1;
+      } else {
+        current.wrong += 1;
+        current.lastWrongCategory = answer.category;
+        current.lastWrongQuestion = answer.questionStem || "";
+      }
+
+      grouped.set(userId, current);
+    });
+
+    if (!grouped.size) {
+      grouped.set(currentUser.id, {
+        id: currentUser.id,
+        initials: currentUser.initials,
+        name: currentUser.name,
+        role: currentUser.role,
+        correct: 0,
+        wrong: 0,
+        total: 0,
+        lastWrongCategory: "Sin datos",
+        lastWrongQuestion: ""
+      });
+    }
+
+    return Array.from(grouped.values())
+      .map((user) => ({
+        ...user,
+        precision: user.total ? Math.round((user.correct / user.total) * 100) : 0
+      }))
+      .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
+  }, [answers, currentUser]);
+
+  const activeUsers = userRows.filter((user) => user.total > 0).length;
+  const averagePrecision = activeUsers
+    ? Math.round(userRows.filter((user) => user.total > 0).reduce((sum, user) => sum + user.precision, 0) / activeUsers)
+    : 0;
+  const weakCategory = topicRows.length
+    ? [...topicRows].sort((a, b) => a.precision - b.precision || b.wrong - a.wrong)[0].category
+    : "Sin datos";
 
   return (
-    <section className="panel supervisor">
-      <h2>Panel supervisor</h2>
-      <div className="metric-grid">
-        <Metric label="Preguntas en banco" value={questions.length} />
+    <section className="supervisor-dashboard">
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">Modo supervisor</p>
+          <h2>Estadísticas de usuarios</h2>
+        </div>
+      </div>
+
+      <div className="stats-grid">
+        <Metric label="Usuarios activos" value={activeUsers} />
         <Metric label="Respuestas registradas" value={answers.length} />
+        <Metric label="Precisión media" value={`${averagePrecision}%`} />
         <Metric label="Tema a reforzar" value={weakCategory} />
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Tema</th>
-            <th>Correctas</th>
-            <th>Fallos</th>
-            <th>Precisión</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length ? (
-            rows.map((row) => (
-              <tr key={row.category}>
-                <td>{row.category}</td>
-                <td>{row.correct}</td>
-                <td>{row.wrong}</td>
-                <td>{row.precision}%</td>
+
+      <article className="panel user-stats-panel">
+        <div className="section-heading">
+          <h3>Rendimiento por usuario</h3>
+          <span className="table-note">Demo local: se actualizará con cada respuesta registrada.</span>
+        </div>
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>Rol</th>
+                <th>Respuestas</th>
+                <th>Aciertos</th>
+                <th>Fallos</th>
+                <th>Precisión</th>
+                <th>Último tema fallado</th>
               </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="4">Todavía no hay respuestas en esta sesión local.</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+            </thead>
+            <tbody>
+              {userRows.map((user) => (
+                <tr key={user.id}>
+                  <td>
+                    <span className="user-cell">
+                      <span className="avatar small">{user.initials}</span>
+                      <b>{user.name}</b>
+                    </span>
+                  </td>
+                  <td>{roleLabels[user.role] || user.role}</td>
+                  <td>{user.total}</td>
+                  <td>{user.correct}</td>
+                  <td>{user.wrong}</td>
+                  <td>
+                    <span className={`precision-pill ${user.precision >= 80 ? "good" : user.precision >= 60 ? "mid" : "low"}`}>
+                      {user.precision}%
+                    </span>
+                  </td>
+                  <td title={user.lastWrongQuestion}>{user.lastWrongCategory}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article className="panel user-stats-panel">
+        <div className="section-heading">
+          <h3>Rendimiento por tema</h3>
+          <span className="table-note">{questions.length} preguntas en el banco</span>
+        </div>
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Tema</th>
+                <th>Correctas</th>
+                <th>Fallos</th>
+                <th>Precisión</th>
+              </tr>
+            </thead>
+            <tbody>
+              {topicRows.length ? (
+                topicRows.map((row) => (
+                  <tr key={row.category}>
+                    <td>{row.category}</td>
+                    <td>{row.correct}</td>
+                    <td>{row.wrong}</td>
+                    <td>{row.precision}%</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="4">Todavía no hay respuestas registradas en esta demo local.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </article>
     </section>
   );
 }
