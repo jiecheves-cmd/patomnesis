@@ -52,7 +52,8 @@ En Supabase:
 1. Ejecuta `supabase/schema.sql` en el SQL editor del proyecto.
 2. En Authentication, activa Anonymous sign-ins si quieres probar sin login formal.
 3. En Vercel, anade las mismas variables `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`.
-4. Publica preguntas con `status = 'published'` y sus opciones en `question_options`.
+4. Para cargar las preguntas iniciales, ejecuta `supabase/seed_questions.sql`.
+5. Publica nuevas preguntas con `status = 'published'` y sus opciones en `question_options`.
 
 Si Supabase no esta configurado o no responde, la app cae automaticamente a demo local con `seedQuestions`.
 
