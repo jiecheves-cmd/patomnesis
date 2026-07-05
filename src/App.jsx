@@ -1002,7 +1002,7 @@ function TeacherBank({
         <button className="ghost" type="button">Estadísticas</button>
         <button className="ghost" type="button">Ranking</button>
         <button className="active" type="button">Preguntas</button>
-        <button className="ghost" onClick={() => fileInputRef.current?.click()} type="button">Importar</button>
+        <button className="ghost" onClick={() => fileInputRef.current?.click()} type="button">Importar Excel</button>
         <input
           accept=".xlsx,.xls,.csv"
           className="sr-only"
@@ -1062,6 +1062,9 @@ function TeacherBank({
         </div>
         <details className="import-helper">
           <summary>Formato Excel esperado</summary>
+          <p>
+            Usa el botón <b>Importar Excel</b> para subir archivos .xlsx, .xls o .csv.
+          </p>
           <p>
             tema_principal, tema, dificultad, enunciado, respuesta_correcta, distractor_1,
             distractor_2, distractor_3, explicación, idea_clave.
