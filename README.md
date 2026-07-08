@@ -13,6 +13,7 @@ Este es el primer MVP en React:
 - Modo alumno con quiz y guardado de intentos si Supabase esta configurado.
 - Modo profesor con banco y editor local.
 - Modo supervisor con metricas de la sesion.
+- Login con email y contrasena; el rol sale de `profiles.role` en Supabase.
 - Datos semilla en `src/data/questions.js`.
 - Conexion a Supabase en `src/lib/supabase.js` con fallback local.
 - Esquema inicial en `supabase/schema.sql`.
@@ -50,10 +51,11 @@ VITE_SUPABASE_ANON_KEY=
 En Supabase:
 
 1. Ejecuta `supabase/schema.sql` en el SQL editor del proyecto.
-2. En Authentication, activa Anonymous sign-ins si quieres probar sin login formal.
+2. En Authentication > Users, crea los usuarios con email y contrasena.
 3. En Vercel, anade las mismas variables `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`.
 4. Para cargar las preguntas iniciales, ejecuta `supabase/seed_questions.sql`.
-5. Publica nuevas preguntas con `status = 'published'` y sus opciones en `question_options`.
+5. Para convertir tu cuenta en supervisor, edita y ejecuta `supabase/make_supervisor.sql`.
+6. Publica nuevas preguntas con `status = 'published'` y sus opciones en `question_options`.
 
 Si Supabase no esta configurado o no responde, la app cae automaticamente a demo local con `seedQuestions`.
 

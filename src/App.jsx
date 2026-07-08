@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { difficultyLabels, questionThemes, roleLabels, seedQuestions } from "./data/questions.js";
 import {
-  bootstrapSupabaseSession,
   createQuizAttempt,
   fetchPublishedQuestions,
   finishQuizAttempt,
+  getCurrentProfileSession,
   isSupabaseConfigured,
-  recordQuizAnswer
+  recordQuizAnswer,
+  signInWithPassword,
+  signOutUser
 } from "./lib/supabase.js";
 
 const emptyQuestion = {
@@ -55,13 +57,15 @@ const roleAliases = {
   profesor: "teacher",
   supervisor: "supervisor",
   student: "student",
-  teacher: "teacher"
+  teacher: "teacher",
+  admin: "admin"
 };
 
 const roleAccess = {
   student: ["student"],
   teacher: ["student", "teacher"],
-  supervisor: ["student", "teacher", "supervisor"]
+  supervisor: ["student", "teacher", "supervisor"],
+  admin: ["student", "teacher", "supervisor"]
 };
 
 const difficultyAliases = {
@@ -331,6 +335,8 @@ function App() {
   const [supabaseStatus, setSupabaseStatus] = useState(
     isSupabaseConfigured ? "Conectando Supabase..." : "Demo local"
   );
+  const [authLoading, setAuthLoading] = useState(isSupabaseConfigured);
+  const [authError, setAuthError] = useState("");
 
   const categories = useMemo(
     () =>
@@ -371,7 +377,6 @@ function App() {
     [answerHistory, questions]
   );
 
-  const availableRoles = roleAccess[session.userRole];
   const currentUser = useMemo(() => {
     if (!supabaseUser) return getSessionUser(session);
 
@@ -384,6 +389,7 @@ function App() {
       role: supabaseProfile?.role || "student"
     };
   }, [session, supabaseProfile, supabaseUser]);
+  const availableRoles = roleAccess[currentUser.role] || roleAccess.student;
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
@@ -391,11 +397,12 @@ function App() {
     let cancelled = false;
 
     async function connectSupabase() {
+      setAuthLoading(true);
       setSupabaseStatus("Conectando Supabase...");
 
       const results = await Promise.allSettled([
         fetchPublishedQuestions(),
-        bootstrapSupabaseSession("student")
+        getCurrentProfileSession()
       ]);
 
       if (cancelled) return;
@@ -409,7 +416,7 @@ function App() {
       }
 
       if (authResult.status === "rejected") {
-        console.warn("No se pudo iniciar sesión anónima en Supabase", authResult.reason);
+        console.warn("No se pudo leer la sesión de Supabase", authResult.reason);
       }
 
       if (remoteQuestions.length) {
@@ -419,6 +426,7 @@ function App() {
 
       setSupabaseUser(auth.user);
       setSupabaseProfile(auth.profile);
+      if (auth.profile?.role) setRole(auth.profile.role);
 
       if (auth.user && questionsResult.status === "fulfilled") {
         setSupabaseStatus(
@@ -426,22 +434,30 @@ function App() {
             ? `Supabase conectado · ${remoteQuestions.length} preguntas`
             : "Supabase conectado · sin preguntas publicadas"
         );
+        setAuthLoading(false);
         return;
       }
 
       if (auth.user) {
-        setSupabaseStatus(`Supabase conectado · preguntas: ${describeSupabaseError(questionsResult.reason)}`);
+        setSupabaseStatus(`Sesión iniciada · preguntas: ${describeSupabaseError(questionsResult.reason)}`);
+        setAuthLoading(false);
         return;
       }
 
       if (questionsResult.status === "fulfilled") {
-        setSupabaseStatus(`Supabase lectura · Auth: ${describeSupabaseError(authResult.reason)}`);
+        setSupabaseStatus(
+          remoteQuestions.length
+            ? `Supabase listo · ${remoteQuestions.length} preguntas`
+            : "Supabase conectado · sin preguntas publicadas"
+        );
+        setAuthLoading(false);
         return;
       }
 
       setSupabaseStatus(
         `Supabase no disponible · ${describeSupabaseError(authResult.reason || questionsResult.reason)}`
       );
+      setAuthLoading(false);
     }
 
     connectSupabase();
@@ -462,10 +478,47 @@ function App() {
   }, [activeAttemptId, answers, attemptFinished, currentIndex, deck.length, showQuiz]);
 
   function changeRole(nextRole) {
+    if (!availableRoles.includes(nextRole)) return;
     setRole(nextRole);
     setShowQuiz(false);
     setQuizMode("practice");
     setSelectedOptionId(null);
+  }
+
+  async function handleLogin(credentials) {
+    setAuthError("");
+    setAuthLoading(true);
+
+    try {
+      const auth = await signInWithPassword(credentials);
+      setSupabaseUser(auth.user);
+      setSupabaseProfile(auth.profile);
+      setRole(auth.profile?.role || "student");
+      setSupabaseStatus("Supabase conectado · sesión iniciada");
+    } catch (error) {
+      setAuthError(describeSupabaseError(error));
+    } finally {
+      setAuthLoading(false);
+    }
+  }
+
+  async function handleSignOut() {
+    setAuthError("");
+    setAuthLoading(true);
+
+    try {
+      await signOutUser();
+      setSupabaseUser(null);
+      setSupabaseProfile(null);
+      setRole("student");
+      setShowQuiz(false);
+      setActiveAttemptId(null);
+      setSupabaseStatus("Supabase conectado · inicia sesión");
+    } catch (error) {
+      setAuthError(describeSupabaseError(error));
+    } finally {
+      setAuthLoading(false);
+    }
   }
 
   async function createAttemptForDeck(nextDeck, mode, categoryFilter = "Todas", difficultyFilter = "Todas") {
@@ -660,6 +713,21 @@ function App() {
     }));
   }
 
+  if (isSupabaseConfigured && authLoading && !supabaseUser) {
+    return <LoginScreen authError="" authLoading={authLoading} onLogin={handleLogin} status={supabaseStatus} />;
+  }
+
+  if (isSupabaseConfigured && !supabaseUser) {
+    return (
+      <LoginScreen
+        authError={authError}
+        authLoading={authLoading}
+        onLogin={handleLogin}
+        status={supabaseStatus}
+      />
+    );
+  }
+
   return (
     <main className="shell app-shell">
       <header className="app-header">
@@ -677,7 +745,7 @@ function App() {
             <button className="ghost" type="button">
               Mi perfil
             </button>
-            <button className="ghost" type="button">
+            <button className="ghost" onClick={handleSignOut} type="button">
               Cerrar sesión
             </button>
           </div>
@@ -772,6 +840,73 @@ function App() {
       {role === "supervisor" && (
         <SupervisorDashboard answers={answerHistory} currentUser={currentUser} questions={questions} />
       )}
+    </main>
+  );
+}
+
+function LoginScreen({ authError, authLoading, onLogin, status }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  function submitLogin(event) {
+    event.preventDefault();
+    onLogin({ email: email.trim(), password });
+  }
+
+  return (
+    <main className="auth-page">
+      <section className="auth-card">
+        <div className="auth-brand">
+          <img src="/brand/patomnesis-icon.png" alt="" />
+          <div>
+            <h1>Patomnesis</h1>
+            <span>Acceso con perfil</span>
+          </div>
+        </div>
+
+        <div className="auth-copy">
+          <p className="eyebrow">Usuarios reales</p>
+          <h2>Entra con tu cuenta</h2>
+          <p>
+            Cada usuario accede con email y contraseña. El rol de alumno, profesor o supervisor
+            se toma del perfil guardado en Supabase.
+          </p>
+        </div>
+
+        <form className="auth-form" onSubmit={submitLogin}>
+          <label>
+            Email
+            <input
+              autoComplete="email"
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="tu@email.com"
+              required
+              type="email"
+              value={email}
+            />
+          </label>
+          <label>
+            Contraseña
+            <input
+              autoComplete="current-password"
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="Tu contraseña"
+              required
+              type="password"
+              value={password}
+            />
+          </label>
+          {authError && <p className="auth-error">{authError}</p>}
+          <button className="primary-large" disabled={authLoading} type="submit">
+            {authLoading ? "Entrando..." : "Entrar"}
+          </button>
+        </form>
+
+        <p className="auth-note">
+          {status}. Si tu cuenta debe ser supervisora, primero crea el usuario en Supabase y despues
+          ejecuta el script `make_supervisor.sql`.
+        </p>
+      </section>
     </main>
   );
 }

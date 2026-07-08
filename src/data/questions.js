@@ -167,5 +167,6 @@ export const difficultyLabels = {
 export const roleLabels = {
   student: "Alumno",
   teacher: "Profesor",
-  supervisor: "Supervisor"
+  supervisor: "Supervisor",
+  admin: "Administrador"
 };

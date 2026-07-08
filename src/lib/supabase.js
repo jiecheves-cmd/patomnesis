@@ -30,22 +30,17 @@ function mapQuestion(row) {
   };
 }
 
-export async function bootstrapSupabaseSession(role = "student") {
+export async function getCurrentProfileSession() {
   if (!supabase) return { profile: null, session: null, user: null };
 
-  const { data: currentSession } = await supabase.auth.getSession();
-  let session = currentSession.session;
+  const { data: currentSession, error } = await supabase.auth.getSession();
+  if (error) throw error;
 
-  if (!session) {
-    const { data, error } = await supabase.auth.signInAnonymously();
-    if (error) throw error;
-    session = data.session;
-  }
-
+  const session = currentSession.session;
   const user = session?.user;
   if (!user) return { profile: null, session, user: null };
 
-  const profile = await ensureProfile(user, role);
+  const profile = await ensureProfile(user);
   return { profile, session, user };
 }
 
@@ -77,6 +72,28 @@ export async function ensureProfile(user, role = "student") {
 
   if (error) throw error;
   return data;
+}
+
+export async function signInWithPassword({ email, password }) {
+  if (!supabase) return { profile: null, session: null, user: null };
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  if (error) throw error;
+
+  const user = data.user;
+  const profile = await ensureProfile(user);
+  return { profile, session: data.session, user };
+}
+
+export async function signOutUser() {
+  if (!supabase) return;
+
+  const { error } = await supabase.auth.signOut();
+  if (error) throw error;
 }
 
 export async function fetchPublishedQuestions() {

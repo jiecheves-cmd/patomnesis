@@ -76,7 +76,18 @@ alter table public.question_options enable row level security;
 alter table public.quiz_attempts enable row level security;
 alter table public.quiz_answers enable row level security;
 
+create or replace function public.current_profile_role()
+returns text
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select role from public.profiles where id = auth.uid()
+$$;
+
 drop policy if exists "Profiles can read own profile" on public.profiles;
+drop policy if exists "Supervisors can read profiles" on public.profiles;
 drop policy if exists "Profiles can create own profile" on public.profiles;
 drop policy if exists "Profiles can update own profile" on public.profiles;
 drop policy if exists "Published questions are readable" on public.questions;
@@ -94,6 +105,10 @@ drop policy if exists "Supervisors can read answers" on public.quiz_answers;
 create policy "Profiles can read own profile"
   on public.profiles for select
   using (auth.uid() = id);
+
+create policy "Supervisors can read profiles"
+  on public.profiles for select
+  using (public.current_profile_role() in ('supervisor', 'admin'));
 
 create policy "Profiles can create own profile"
   on public.profiles for insert
