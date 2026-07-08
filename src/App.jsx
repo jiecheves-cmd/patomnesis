@@ -8,7 +8,10 @@ import {
   isSupabaseConfigured,
   recordQuizAnswer,
   signInWithPassword,
-  signOutUser
+  signOutUser,
+  updateOwnPassword,
+  updateOwnProfile,
+  updateOwnUserMetadata
 } from "./lib/supabase.js";
 
 const emptyQuestion = {
@@ -337,6 +340,8 @@ function App() {
   );
   const [authLoading, setAuthLoading] = useState(isSupabaseConfigured);
   const [authError, setAuthError] = useState("");
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileMessage, setProfileMessage] = useState("");
 
   const categories = useMemo(
     () =>
@@ -518,6 +523,30 @@ function App() {
       setAuthError(describeSupabaseError(error));
     } finally {
       setAuthLoading(false);
+    }
+  }
+
+  async function handleProfileSave({ fullName, newPassword }) {
+    if (!supabaseUser) return;
+
+    setProfileMessage("Guardando cambios...");
+
+    try {
+      let nextProfile = supabaseProfile;
+
+      if (fullName !== (supabaseProfile?.full_name || "")) {
+        nextProfile = await updateOwnProfile({ fullName, userId: supabaseUser.id });
+        await updateOwnUserMetadata({ fullName });
+        setSupabaseProfile(nextProfile);
+      }
+
+      if (newPassword) {
+        await updateOwnPassword(newPassword);
+      }
+
+      setProfileMessage(newPassword ? "Perfil y contraseña actualizados." : "Perfil actualizado.");
+    } catch (error) {
+      setProfileMessage(`No se pudo guardar: ${describeSupabaseError(error)}`);
     }
   }
 
@@ -742,7 +771,7 @@ function App() {
           <div className="profile-actions">
             <span className="avatar">{currentUser.initials}</span>
             <span>{roleLabels[currentUser.role] || roleLabels[session.userRole]}</span>
-            <button className="ghost" type="button">
+            <button className="ghost" onClick={() => setProfileOpen(true)} type="button">
               Mi perfil
             </button>
             <button className="ghost" onClick={handleSignOut} type="button">
@@ -779,6 +808,19 @@ function App() {
           </nav>
         )}
       </header>
+
+      {profileOpen && (
+        <ProfileDialog
+          currentUser={currentUser}
+          message={profileMessage}
+          onClose={() => {
+            setProfileOpen(false);
+            setProfileMessage("");
+          }}
+          onSave={handleProfileSave}
+          profile={supabaseProfile}
+        />
+      )}
 
       {role === "student" && (
         <>
@@ -908,6 +950,103 @@ function LoginScreen({ authError, authLoading, onLogin, status }) {
         </p>
       </section>
     </main>
+  );
+}
+
+function ProfileDialog({ currentUser, message, onClose, onSave, profile }) {
+  const [fullName, setFullName] = useState(profile?.full_name || "");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [localError, setLocalError] = useState("");
+
+  function submitProfile(event) {
+    event.preventDefault();
+    setLocalError("");
+
+    if (newPassword || confirmPassword) {
+      if (newPassword.length < 6) {
+        setLocalError("La contraseña debe tener al menos 6 caracteres.");
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        setLocalError("Las contraseñas no coinciden.");
+        return;
+      }
+    }
+
+    onSave({
+      fullName: fullName.trim(),
+      newPassword
+    });
+    setNewPassword("");
+    setConfirmPassword("");
+  }
+
+  return (
+    <div className="profile-overlay" role="presentation">
+      <section className="profile-dialog" aria-modal="true" role="dialog" aria-labelledby="profile-title">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Mi perfil</p>
+            <h2 id="profile-title">Cuenta de Patomnesis</h2>
+          </div>
+          <button className="ghost compact" onClick={onClose} type="button">
+            Cerrar
+          </button>
+        </div>
+
+        <div className="profile-summary">
+          <span className="avatar">{currentUser.initials}</span>
+          <div>
+            <strong>{currentUser.name}</strong>
+            <span>{roleLabels[currentUser.role] || currentUser.role}</span>
+          </div>
+        </div>
+
+        <form className="profile-form" onSubmit={submitProfile}>
+          <label>
+            Nombre de usuario
+            <input
+              onChange={(event) => setFullName(event.target.value)}
+              placeholder="Nombre que verá el profesor o supervisor"
+              value={fullName}
+            />
+          </label>
+          <label>
+            Email
+            <input disabled value={profile?.email || ""} />
+          </label>
+          <div className="profile-password-block">
+            <p>
+              <b>Cambiar contraseña</b>
+              <span>Déjalo vacío si no quieres cambiarla.</span>
+            </p>
+            <label>
+              Nueva contraseña
+              <input
+                autoComplete="new-password"
+                onChange={(event) => setNewPassword(event.target.value)}
+                type="password"
+                value={newPassword}
+              />
+            </label>
+            <label>
+              Repetir nueva contraseña
+              <input
+                autoComplete="new-password"
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                type="password"
+                value={confirmPassword}
+              />
+            </label>
+          </div>
+          {localError && <p className="auth-error">{localError}</p>}
+          {message && <p className="profile-message">{message}</p>}
+          <button type="submit">Guardar cambios</button>
+        </form>
+      </section>
+    </div>
   );
 }
 

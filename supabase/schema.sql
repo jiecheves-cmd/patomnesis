@@ -86,6 +86,30 @@ as $$
   select role from public.profiles where id = auth.uid()
 $$;
 
+create or replace function public.protect_profile_identity()
+returns trigger
+language plpgsql
+as $$
+begin
+  if current_user in ('authenticated', 'anon') then
+    if new.id <> old.id
+      or new.email <> old.email
+      or new.role <> old.role
+      or new.created_at <> old.created_at then
+      raise exception 'Solo se puede actualizar el nombre del perfil desde la app';
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists protect_profile_identity_trigger on public.profiles;
+create trigger protect_profile_identity_trigger
+  before update on public.profiles
+  for each row
+  execute function public.protect_profile_identity();
+
 drop policy if exists "Profiles can read own profile" on public.profiles;
 drop policy if exists "Supervisors can read profiles" on public.profiles;
 drop policy if exists "Profiles can create own profile" on public.profiles;
@@ -113,6 +137,11 @@ create policy "Supervisors can read profiles"
 create policy "Profiles can create own profile"
   on public.profiles for insert
   with check (auth.uid() = id and role = 'student');
+
+create policy "Profiles can update own profile"
+  on public.profiles for update
+  using (auth.uid() = id)
+  with check (auth.uid() = id and role = public.current_profile_role());
 
 create policy "Published questions are readable"
   on public.questions for select

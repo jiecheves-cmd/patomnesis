@@ -114,6 +114,36 @@ export async function signOutUser() {
   if (error) throw error;
 }
 
+export async function updateOwnProfile({ fullName, userId }) {
+  if (!supabase || !userId) return null;
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({ full_name: fullName || null })
+    .eq("id", userId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updateOwnPassword(password) {
+  if (!supabase || !password) return;
+
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) throw error;
+}
+
+export async function updateOwnUserMetadata({ fullName }) {
+  if (!supabase) return;
+
+  const { error } = await supabase.auth.updateUser({
+    data: { full_name: fullName || null }
+  });
+  if (error) throw error;
+}
+
 export async function fetchPublishedQuestions() {
   if (!supabase) return [];
 
