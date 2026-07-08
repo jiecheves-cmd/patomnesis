@@ -8,6 +8,15 @@ export const supabase =
 
 export const isSupabaseConfigured = Boolean(supabase);
 
+function isAnonymousUser(user) {
+  return Boolean(
+    user?.is_anonymous ||
+      user?.app_metadata?.provider === "anonymous" ||
+      user?.app_metadata?.providers?.includes("anonymous") ||
+      !user?.email
+  );
+}
+
 function mapQuestion(row) {
   const options = [...(row.question_options || [])]
     .sort((a, b) => a.position - b.position)
@@ -40,6 +49,11 @@ export async function getCurrentProfileSession() {
   const user = session?.user;
   if (!user) return { profile: null, session, user: null };
 
+  if (isAnonymousUser(user)) {
+    await supabase.auth.signOut();
+    return { profile: null, session: null, user: null };
+  }
+
   const profile = await ensureProfile(user);
   return { profile, session, user };
 }
@@ -47,7 +61,11 @@ export async function getCurrentProfileSession() {
 export async function ensureProfile(user, role = "student") {
   if (!supabase || !user) return null;
 
-  const email = user.email || `anon-${user.id}@patomnesis.local`;
+  if (isAnonymousUser(user)) {
+    throw new Error("Las sesiones anonimas no estan permitidas. Inicia sesion con email y contrasena.");
+  }
+
+  const email = user.email;
   const fullName = user.user_metadata?.full_name || null;
 
   const { data: existingProfile, error: readError } = await supabase
