@@ -122,9 +122,15 @@ export async function updateOwnProfile({ fullName, userId }) {
     .update({ full_name: fullName || null })
     .eq("id", userId)
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
+  if (!data) {
+    throw new Error(
+      "No se pudo actualizar el perfil. Ejecuta de nuevo supabase/schema.sql en Supabase SQL Editor."
+    );
+  }
+
   return data;
 }
 
