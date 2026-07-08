@@ -1377,6 +1377,22 @@ button.ghost {
   gap: 14px;
 }
 
+.user-create-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.user-create-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.user-create-form button {
+  white-space: nowrap;
+}
+
 .user-admin-note {
   padding: 14px;
   border: 1px solid var(--line);
@@ -1408,6 +1424,12 @@ button.ghost {
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 900;
+}
+
+button.danger.compact {
+  background: #fff0ee;
+  color: var(--bad);
+  border-color: rgba(190, 52, 85, 0.18);
 }
 
 .filter-row {
@@ -1789,6 +1811,7 @@ th {
   .student-launch,
   .student-dashboard,
   .launch-card,
+  .user-create-form,
   .stats-grid,
   .stats-panels,
   .teacher-layout,

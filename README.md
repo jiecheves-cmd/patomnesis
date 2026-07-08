@@ -57,6 +57,18 @@ En Supabase:
 5. Para convertir tu cuenta en supervisor, edita y ejecuta `supabase/make_supervisor.sql`.
 6. Publica nuevas preguntas con `status = 'published'` y sus opciones en `question_options`.
 
+### Gestión de usuarios
+
+El modo supervisor usa la Edge Function `supabase/functions/admin-users` para crear usuarios con contraseña inicial y eliminar usuarios. Esa función usa la service role key en Supabase, nunca en el navegador.
+
+Despues de desplegar cambios:
+
+```bash
+supabase functions deploy admin-users
+```
+
+Comprueba en Supabase que la función tiene disponible la secret `SUPABASE_SERVICE_ROLE_KEY`. Si no aparece, añádela desde el panel de Supabase usando la service role key del proyecto.
+
 Si Supabase no esta configurado o no responde, la app cae automaticamente a demo local con `seedQuestions`.
 
 Las imagenes deben vivir en Supabase Storage, no en GitHub.

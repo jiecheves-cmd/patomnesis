@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { difficultyLabels, questionThemes, roleLabels, seedQuestions } from "./data/questions.js";
 import {
   createQuizAttempt,
+  createManagedUser,
+  deleteManagedUser,
   fetchProfiles,
   fetchPublishedQuestions,
   finishQuizAttempt,
@@ -1867,6 +1869,40 @@ function SupervisorDashboard({ answers, currentUser, questions }) {
     }
   }
 
+  async function createUser(userData) {
+    setProfilesStatus("Creando usuario...");
+
+    try {
+      const createdProfile = await createManagedUser(userData);
+      if (createdProfile) {
+        setProfiles((previous) => [createdProfile, ...previous.filter((profile) => profile.id !== createdProfile.id)]);
+      }
+      setProfilesStatus("Usuario creado.");
+    } catch (error) {
+      setProfilesStatus(`No se pudo crear el usuario: ${describeSupabaseError(error)}`);
+    }
+  }
+
+  async function deleteUser(profile) {
+    if (profile.id === currentUser.id) return;
+    const label = profile.full_name || profile.email;
+    const confirmed = window.confirm(`¿Eliminar definitivamente a ${label}? Esta acción no se puede deshacer.`);
+    if (!confirmed) return;
+
+    setRoleUpdatingId(profile.id);
+    setProfilesStatus("Eliminando usuario...");
+
+    try {
+      await deleteManagedUser(profile.id);
+      setProfiles((previous) => previous.filter((item) => item.id !== profile.id));
+      setProfilesStatus("Usuario eliminado.");
+    } catch (error) {
+      setProfilesStatus(`No se pudo eliminar el usuario: ${describeSupabaseError(error)}`);
+    } finally {
+      setRoleUpdatingId("");
+    }
+  }
+
   return (
     <section className="supervisor-dashboard">
       <div className="section-heading">
@@ -1896,6 +1932,8 @@ function SupervisorDashboard({ answers, currentUser, questions }) {
       {supervisorTab === "users" ? (
         <SupervisorUsers
           currentUser={currentUser}
+          onCreateUser={createUser}
+          onDeleteUser={deleteUser}
           onRoleChange={changeUserRole}
           profiles={profiles}
           roleUpdatingId={roleUpdatingId}
@@ -1994,15 +2032,101 @@ function SupervisorDashboard({ answers, currentUser, questions }) {
   );
 }
 
-function SupervisorUsers({ currentUser, onRoleChange, profiles, roleUpdatingId, status }) {
+function SupervisorUsers({ currentUser, onCreateUser, onDeleteUser, onRoleChange, profiles, roleUpdatingId, status }) {
+  const [newUser, setNewUser] = useState({
+    email: "",
+    fullName: "",
+    password: "",
+    role: "student"
+  });
+  const [localError, setLocalError] = useState("");
   const profileRows = profiles.map((profile) => ({
     ...profile,
     displayName: profile.full_name || profile.email,
     initials: (profile.full_name || profile.email || "US").slice(0, 2).toUpperCase()
   }));
 
+  function updateNewUser(field, value) {
+    setNewUser((previous) => ({ ...previous, [field]: value }));
+  }
+
+  function submitNewUser(event) {
+    event.preventDefault();
+    setLocalError("");
+
+    if (!newUser.email.trim() || !newUser.password) {
+      setLocalError("Email y contraseña inicial son obligatorios.");
+      return;
+    }
+
+    if (newUser.password.length < 6) {
+      setLocalError("La contraseña inicial debe tener al menos 6 caracteres.");
+      return;
+    }
+
+    onCreateUser({
+      email: newUser.email.trim(),
+      fullName: newUser.fullName.trim(),
+      password: newUser.password,
+      role: newUser.role
+    });
+
+    setNewUser({ email: "", fullName: "", password: "", role: "student" });
+  }
+
   return (
     <section className="supervisor-users">
+      <article className="panel user-create-panel">
+        <div className="section-heading">
+          <div>
+            <h3>Agregar usuario</h3>
+            <span className="table-note">Crea una cuenta con contraseña inicial y rol asignado.</span>
+          </div>
+        </div>
+
+        <form className="user-create-form" onSubmit={submitNewUser}>
+          <label>
+            Nombre
+            <input
+              onChange={(event) => updateNewUser("fullName", event.target.value)}
+              placeholder="Nombre visible"
+              value={newUser.fullName}
+            />
+          </label>
+          <label>
+            Email
+            <input
+              onChange={(event) => updateNewUser("email", event.target.value)}
+              placeholder="usuario@ejemplo.com"
+              required
+              type="email"
+              value={newUser.email}
+            />
+          </label>
+          <label>
+            Contraseña inicial
+            <input
+              onChange={(event) => updateNewUser("password", event.target.value)}
+              required
+              type="password"
+              value={newUser.password}
+            />
+          </label>
+          <label>
+            Rol
+            <select onChange={(event) => updateNewUser("role", event.target.value)} value={newUser.role}>
+              {managedRoleOptions.map((role) => (
+                <option key={role} value={role}>
+                  {roleLabels[role]}
+                </option>
+              ))}
+            </select>
+          </label>
+          {localError && <p className="auth-error wide">{localError}</p>}
+          <button type="submit">Crear usuario</button>
+        </form>
+      </article>
+
       <article className="panel user-admin-panel">
         <div className="section-heading">
           <div>
@@ -2012,11 +2136,10 @@ function SupervisorUsers({ currentUser, onRoleChange, profiles, roleUpdatingId, 
         </div>
 
         <div className="user-admin-note">
-          <strong>Alta de usuarios</strong>
+          <strong>Nota técnica</strong>
           <p>
-            Por seguridad, las cuentas con contraseña se crean por ahora en Supabase:
-            Authentication &gt; Users &gt; Add user. Cuando el usuario entre por primera vez,
-            aparecerá aquí como Alumno y podrás cambiar su rol.
+            Crear y eliminar usuarios requiere la Edge Function <b>admin-users</b> desplegada en Supabase.
+            Si falla, revisa que la función esté publicada y que exista la secret <b>SUPABASE_SERVICE_ROLE_KEY</b>.
           </p>
         </div>
 
@@ -2028,6 +2151,7 @@ function SupervisorUsers({ currentUser, onRoleChange, profiles, roleUpdatingId, 
                 <th>Email</th>
                 <th>Rol</th>
                 <th>Alta</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -2060,12 +2184,22 @@ function SupervisorUsers({ currentUser, onRoleChange, profiles, roleUpdatingId, 
                         {isCurrentUser && <span className="self-user-note">Tu cuenta</span>}
                       </td>
                       <td>{profile.created_at ? new Date(profile.created_at).toLocaleDateString("es-ES") : "-"}</td>
+                      <td>
+                        <button
+                          className="danger compact"
+                          disabled={isCurrentUser || roleUpdatingId === profile.id}
+                          onClick={() => onDeleteUser(profile)}
+                          type="button"
+                        >
+                          Eliminar
+                        </button>
+                      </td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan="4">Todavía no hay perfiles cargados.</td>
+                  <td colSpan="5">Todavía no hay perfiles cargados.</td>
                 </tr>
               )}
             </tbody>

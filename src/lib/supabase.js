@@ -174,6 +174,37 @@ export async function updateProfileRole({ profileId, role }) {
   return data;
 }
 
+export async function createManagedUser({ email, fullName, password, role }) {
+  if (!supabase) return null;
+
+  const { data, error } = await supabase.functions.invoke("admin-users", {
+    body: {
+      action: "create",
+      email,
+      fullName,
+      password,
+      role
+    }
+  });
+
+  if (error) throw error;
+  return data?.profile || null;
+}
+
+export async function deleteManagedUser(userId) {
+  if (!supabase || !userId) return null;
+
+  const { data, error } = await supabase.functions.invoke("admin-users", {
+    body: {
+      action: "delete",
+      userId
+    }
+  });
+
+  if (error) throw error;
+  return data;
+}
+
 export async function fetchPublishedQuestions() {
   if (!supabase) return [];
 
