@@ -1301,6 +1301,25 @@ button.ghost {
   gap: 16px;
 }
 
+.supervisor-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.supervisor-tabs button {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.62);
+  color: var(--muted);
+}
+
+.supervisor-tabs button.active {
+  border-color: rgba(126, 34, 206, 0.26);
+  background: linear-gradient(135deg, #7e22ce, #fb7185);
+  color: #fff;
+}
+
 .user-stats-panel {
   display: grid;
   gap: 10px;
@@ -1350,6 +1369,45 @@ button.ghost {
 .precision-pill.low {
   background: #fee2e2;
   color: #b91c1c;
+}
+
+.supervisor-users,
+.user-admin-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.user-admin-note {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fffaf2;
+}
+
+.user-admin-note strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--ink);
+}
+
+.user-admin-note p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.user-admin-table select {
+  min-width: 150px;
+  max-width: 180px;
+  padding: 8px 10px;
+}
+
+.self-user-note {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
 }
 
 .filter-row {

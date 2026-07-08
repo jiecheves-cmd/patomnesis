@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { difficultyLabels, questionThemes, roleLabels, seedQuestions } from "./data/questions.js";
 import {
   createQuizAttempt,
+  fetchProfiles,
   fetchPublishedQuestions,
   finishQuizAttempt,
   getCurrentProfileSession,
@@ -11,7 +12,8 @@ import {
   signOutUser,
   updateOwnPassword,
   updateOwnProfile,
-  updateOwnUserMetadata
+  updateOwnUserMetadata,
+  updateProfileRole
 } from "./lib/supabase.js";
 
 const emptyQuestion = {
@@ -70,6 +72,8 @@ const roleAccess = {
   supervisor: ["student", "teacher", "supervisor"],
   admin: ["student", "teacher", "supervisor"]
 };
+
+const managedRoleOptions = ["student", "teacher", "supervisor"];
 
 const difficultyAliases = {
   avanzada: "advanced",
@@ -1745,6 +1749,11 @@ function TeacherStats({ questions, stats }) {
 }
 
 function SupervisorDashboard({ answers, currentUser, questions }) {
+  const [supervisorTab, setSupervisorTab] = useState("stats");
+  const [profiles, setProfiles] = useState([]);
+  const [profilesStatus, setProfilesStatus] = useState("Cargando usuarios...");
+  const [roleUpdatingId, setRoleUpdatingId] = useState("");
+
   const topicRows = useMemo(() => {
     const grouped = new Map();
     answers.forEach((answer) => {
@@ -1819,15 +1828,81 @@ function SupervisorDashboard({ answers, currentUser, questions }) {
     ? [...topicRows].sort((a, b) => a.precision - b.precision || b.wrong - a.wrong)[0].category
     : "Sin datos";
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadProfiles() {
+      try {
+        const nextProfiles = await fetchProfiles();
+        if (cancelled) return;
+        setProfiles(nextProfiles);
+        setProfilesStatus(nextProfiles.length ? `${nextProfiles.length} usuarios registrados` : "Sin usuarios registrados");
+      } catch (error) {
+        if (cancelled) return;
+        setProfilesStatus(`No se pudieron cargar usuarios: ${describeSupabaseError(error)}`);
+      }
+    }
+
+    loadProfiles();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function changeUserRole(profileId, nextRole) {
+    setRoleUpdatingId(profileId);
+    setProfilesStatus("Actualizando rol...");
+
+    try {
+      const updatedProfile = await updateProfileRole({ profileId, role: nextRole });
+      setProfiles((previous) =>
+        previous.map((profile) => (profile.id === updatedProfile.id ? updatedProfile : profile))
+      );
+      setProfilesStatus("Rol actualizado.");
+    } catch (error) {
+      setProfilesStatus(`No se pudo actualizar el rol: ${describeSupabaseError(error)}`);
+    } finally {
+      setRoleUpdatingId("");
+    }
+  }
+
   return (
     <section className="supervisor-dashboard">
       <div className="section-heading">
         <div>
           <p className="eyebrow">Modo supervisor</p>
-          <h2>Estadísticas de usuarios</h2>
+          <h2>{supervisorTab === "stats" ? "Estadísticas de usuarios" : "Gestión de usuarios"}</h2>
         </div>
       </div>
 
+      <nav className="supervisor-tabs" aria-label="Secciones de supervisor">
+        <button
+          className={supervisorTab === "stats" ? "active" : ""}
+          onClick={() => setSupervisorTab("stats")}
+          type="button"
+        >
+          Estadísticas
+        </button>
+        <button
+          className={supervisorTab === "users" ? "active" : ""}
+          onClick={() => setSupervisorTab("users")}
+          type="button"
+        >
+          Usuarios
+        </button>
+      </nav>
+
+      {supervisorTab === "users" ? (
+        <SupervisorUsers
+          currentUser={currentUser}
+          onRoleChange={changeUserRole}
+          profiles={profiles}
+          roleUpdatingId={roleUpdatingId}
+          status={profilesStatus}
+        />
+      ) : (
+        <>
       <div className="stats-grid">
         <Metric label="Usuarios activos" value={activeUsers} />
         <Metric label="Respuestas registradas" value={answers.length} />
@@ -1907,6 +1982,90 @@ function SupervisorDashboard({ answers, currentUser, questions }) {
               ) : (
                 <tr>
                   <td colSpan="4">Todavía no hay respuestas registradas en esta demo local.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </article>
+        </>
+      )}
+    </section>
+  );
+}
+
+function SupervisorUsers({ currentUser, onRoleChange, profiles, roleUpdatingId, status }) {
+  const profileRows = profiles.map((profile) => ({
+    ...profile,
+    displayName: profile.full_name || profile.email,
+    initials: (profile.full_name || profile.email || "US").slice(0, 2).toUpperCase()
+  }));
+
+  return (
+    <section className="supervisor-users">
+      <article className="panel user-admin-panel">
+        <div className="section-heading">
+          <div>
+            <h3>Usuarios registrados</h3>
+            <span className="table-note">{status}</span>
+          </div>
+        </div>
+
+        <div className="user-admin-note">
+          <strong>Alta de usuarios</strong>
+          <p>
+            Por seguridad, las cuentas con contraseña se crean por ahora en Supabase:
+            Authentication &gt; Users &gt; Add user. Cuando el usuario entre por primera vez,
+            aparecerá aquí como Alumno y podrás cambiar su rol.
+          </p>
+        </div>
+
+        <div className="table-scroll">
+          <table className="user-admin-table">
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>Email</th>
+                <th>Rol</th>
+                <th>Alta</th>
+              </tr>
+            </thead>
+            <tbody>
+              {profileRows.length ? (
+                profileRows.map((profile) => {
+                  const isCurrentUser = profile.id === currentUser.id;
+
+                  return (
+                    <tr key={profile.id}>
+                      <td>
+                        <span className="user-cell">
+                          <span className="avatar small">{profile.initials}</span>
+                          <b>{profile.displayName}</b>
+                        </span>
+                      </td>
+                      <td>{profile.email}</td>
+                      <td>
+                        <select
+                          aria-label={`Rol de ${profile.displayName}`}
+                          disabled={isCurrentUser || roleUpdatingId === profile.id}
+                          onChange={(event) => onRoleChange(profile.id, event.target.value)}
+                          value={profile.role}
+                        >
+                          {managedRoleOptions.map((role) => (
+                            <option key={role} value={role}>
+                              {roleLabels[role]}
+                            </option>
+                          ))}
+                        </select>
+                        {isCurrentUser && <span className="self-user-note">Tu cuenta</span>}
+                      </td>
+                      <td>{profile.created_at ? new Date(profile.created_at).toLocaleDateString("es-ES") : "-"}</td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan="4">Todavía no hay perfiles cargados.</td>
                 </tr>
               )}
             </tbody>

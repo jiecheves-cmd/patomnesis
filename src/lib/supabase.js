@@ -150,6 +150,30 @@ export async function updateOwnUserMetadata({ fullName }) {
   if (error) throw error;
 }
 
+export async function fetchProfiles() {
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, email, full_name, role, created_at")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function updateProfileRole({ profileId, role }) {
+  if (!supabase || !profileId || !role) return null;
+
+  const { data, error } = await supabase.rpc("set_profile_role", {
+    next_role: role,
+    target_profile_id: profileId
+  });
+
+  if (error) throw error;
+  return data;
+}
+
 export async function fetchPublishedQuestions() {
   if (!supabase) return [];
 

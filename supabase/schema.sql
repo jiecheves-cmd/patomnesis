@@ -110,6 +110,40 @@ create trigger protect_profile_identity_trigger
   for each row
   execute function public.protect_profile_identity();
 
+create or replace function public.set_profile_role(target_profile_id uuid, next_role text)
+returns public.profiles
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  updated_profile public.profiles;
+begin
+  if public.current_profile_role() not in ('supervisor', 'admin') then
+    raise exception 'Solo supervisores o administradores pueden cambiar roles';
+  end if;
+
+  if next_role not in ('student', 'teacher', 'supervisor') then
+    raise exception 'Rol no permitido: %', next_role;
+  end if;
+
+  if target_profile_id = auth.uid() then
+    raise exception 'No puedes cambiar tu propio rol desde la app';
+  end if;
+
+  update public.profiles
+  set role = next_role
+  where id = target_profile_id
+  returning * into updated_profile;
+
+  if updated_profile.id is null then
+    raise exception 'No existe el perfil indicado';
+  end if;
+
+  return updated_profile;
+end;
+$$;
+
 drop policy if exists "Profiles can read own profile" on public.profiles;
 drop policy if exists "Supervisors can read profiles" on public.profiles;
 drop policy if exists "Profiles can create own profile" on public.profiles;
