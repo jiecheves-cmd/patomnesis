@@ -976,6 +976,11 @@ button.ghost {
   overflow: auto;
 }
 
+.mastery-list.expanded {
+  max-height: min(46vh, 520px);
+  margin-bottom: 0;
+}
+
 .mastery-row {
   display: flex;
   align-items: center;
@@ -1007,6 +1012,10 @@ button.ghost {
 .mastery-row b {
   flex: 0 0 auto;
   color: var(--brand-dark);
+}
+
+.mastery-dialog {
+  max-width: 860px;
 }
 
 .difficulty-starts.compact {

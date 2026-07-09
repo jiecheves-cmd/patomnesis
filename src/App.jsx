@@ -1269,6 +1269,7 @@ function StudentLaunch({
   stats,
   toggleCategory
 }) {
+  const [masteryOpen, setMasteryOpen] = useState(false);
   const focusTopics = smartSession.weakTopics.length
     ? smartSession.weakTopics
     : categories.slice(0, 3);
@@ -1415,30 +1416,53 @@ function StudentLaunch({
         <section className="map-card">
           <div className="section-heading">
             <h3>Tu mapa de dominio</h3>
-            <button className="tiny-pill" type="button">Ampliar</button>
+            <button className="tiny-pill" onClick={() => setMasteryOpen(true)} type="button">Ampliar</button>
           </div>
           <CategoryMasteryRadar items={categoryMastery} />
-          <div className="mastery-list">
-            {categoryMastery.map((item) => (
-              <div className="mastery-row" key={item.category}>
-                <div>
-                  <strong>{item.category}</strong>
-                  <span>
-                    {item.attempts
-                      ? `${item.correct} aciertos · ${item.wrong} fallos`
-                      : `${item.questionCount} preguntas disponibles`}
-                  </span>
-                </div>
-                <b>{item.attempts ? `${item.precision}%` : "Sin datos"}</b>
-              </div>
-            ))}
-          </div>
           <button className="secondary retry-full" disabled={!hasMistakes} onClick={onRetryMistakes} type="button">
             Repasar fallos
           </button>
         </section>
       </aside>
+
+      {masteryOpen && (
+        <MasteryDialog items={categoryMastery} onClose={() => setMasteryOpen(false)} />
+      )}
     </section>
+  );
+}
+
+function MasteryDialog({ items, onClose }) {
+  return (
+    <div className="profile-overlay" role="presentation">
+      <section className="profile-dialog mastery-dialog" aria-modal="true" role="dialog" aria-labelledby="mastery-title">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Mapa de dominio</p>
+            <h2 id="mastery-title">Rendimiento por categoría</h2>
+          </div>
+          <button className="ghost compact" onClick={onClose} type="button">
+            Cerrar
+          </button>
+        </div>
+        <CategoryMasteryRadar items={items} />
+        <div className="mastery-list expanded">
+          {items.map((item) => (
+            <div className="mastery-row" key={item.category}>
+              <div>
+                <strong>{item.category}</strong>
+                <span>
+                  {item.attempts
+                    ? `${item.attempts} contestadas · ${item.correct} aciertos · ${item.wrong} fallos`
+                    : `${item.questionCount} preguntas disponibles · todavía sin respuestas`}
+                </span>
+              </div>
+              <b>{item.attempts ? `${item.precision}%` : "Sin datos"}</b>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
   );
 }
 
