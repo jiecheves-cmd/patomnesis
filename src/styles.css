@@ -924,9 +924,18 @@ button.ghost {
 }
 
 .mastery-radar svg {
-  width: min(100%, 280px);
+  width: min(100%, 240px);
   height: auto;
-  overflow: visible;
+  overflow: hidden;
+}
+
+.mastery-radar.large {
+  gap: 12px;
+  margin: 0;
+}
+
+.mastery-radar.large svg {
+  width: min(100%, 430px);
 }
 
 .radar-grid {
@@ -953,10 +962,26 @@ button.ghost {
   stroke-width: 2;
 }
 
-.radar-label {
-  fill: var(--muted);
-  font-size: 9px;
-  font-weight: 850;
+.radar-dot.selected {
+  fill: #ffffff;
+  stroke: #8b1fd1;
+  stroke-width: 4;
+}
+
+.radar-dot-target {
+  fill: transparent;
+}
+
+.radar-dot-group {
+  cursor: pointer;
+  outline: none;
+}
+
+.radar-dot-group:hover .radar-dot,
+.radar-dot-group:focus-visible .radar-dot {
+  r: 7px;
+  stroke: #8b1fd1;
+  stroke-width: 3;
 }
 
 .mastery-radar p,
@@ -1015,7 +1040,65 @@ button.ghost {
 }
 
 .mastery-dialog {
-  max-width: 860px;
+  max-width: 980px;
+}
+
+.mastery-expanded-view {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.75fr);
+  gap: 22px;
+  align-items: center;
+}
+
+.mastery-inspector {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid rgba(235, 211, 194, 0.95);
+  border-radius: 18px;
+  background: rgba(255, 251, 247, 0.9);
+}
+
+.mastery-inspector h3 {
+  margin: 0;
+  color: var(--ink);
+  line-height: 1.1;
+}
+
+.mastery-inspector > strong {
+  color: var(--brand-dark);
+  font-size: clamp(2rem, 6vw, 4rem);
+  line-height: 1;
+}
+
+.mastery-inspector p {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 760;
+}
+
+.mastery-mini-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.mastery-mini-stats span {
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.mastery-mini-stats b {
+  color: var(--ink);
+  font-size: 1.25rem;
 }
 
 .difficulty-starts.compact {
@@ -2020,6 +2103,18 @@ th {
 
   .launch-actions {
     min-width: 0;
+  }
+
+  .mastery-expanded-view {
+    grid-template-columns: 1fr;
+  }
+
+  .mastery-radar.large svg {
+    width: min(100%, 330px);
+  }
+
+  .mastery-mini-stats {
+    grid-template-columns: 1fr;
   }
 
   h1 {

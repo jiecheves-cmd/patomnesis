@@ -1,5 +1,12 @@
 import React from "react";
 
+export function getRadarItems(items) {
+  return items
+    .filter((item) => item.questionCount > 0 || item.attempts > 0)
+    .sort((a, b) => Number(b.attempts > 0) - Number(a.attempts > 0) || b.attempts - a.attempts)
+    .slice(0, 8);
+}
+
 function getRadarPoint(center, radius, angle) {
   return {
     x: center + radius * Math.cos(angle),
@@ -7,14 +14,10 @@ function getRadarPoint(center, radius, angle) {
   };
 }
 
-function CategoryMasteryRadar({ items }) {
-  const activeItems = items.filter((item) => item.questionCount > 0 || item.attempts > 0);
-  const chartItems = [...activeItems]
-    .sort((a, b) => Number(b.attempts > 0) - Number(a.attempts > 0) || b.attempts - a.attempts)
-    .slice(0, 8);
+function CategoryMasteryRadar({ activeCategory, items, onActiveCategoryChange, size = "compact" }) {
+  const chartItems = getRadarItems(items);
   const center = 132;
   const maxRadius = 82;
-  const labelRadius = 112;
   const pointCount = Math.max(chartItems.length, 3);
   const polygonPoints = chartItems
     .map((item, index) => {
@@ -33,7 +36,7 @@ function CategoryMasteryRadar({ items }) {
   }
 
   return (
-    <div className="mastery-radar">
+    <div className={`mastery-radar ${size}`}>
       <svg aria-label="Mapa de dominio por categoría" role="img" viewBox="0 0 264 264">
         {gridLevels.map((level) => {
           const points = Array.from({ length: pointCount }, (_, index) => {
@@ -46,32 +49,51 @@ function CategoryMasteryRadar({ items }) {
         {chartItems.map((item, index) => {
           const angle = -Math.PI / 2 + (index * 2 * Math.PI) / pointCount;
           const axisEnd = getRadarPoint(center, maxRadius, angle);
-          const labelPoint = getRadarPoint(center, labelRadius, angle);
           return (
             <g key={`axis-${item.category}`}>
               <line className="radar-axis" x1={center} x2={axisEnd.x} y1={center} y2={axisEnd.y} />
-              <text
-                className="radar-label"
-                textAnchor={labelPoint.x < center - 12 ? "end" : labelPoint.x > center + 12 ? "start" : "middle"}
-                x={labelPoint.x}
-                y={labelPoint.y}
-              >
-                {item.category.replace("Patología ", "").replace(" y ", " / ")}
-              </text>
             </g>
           );
         })}
         {canDrawPolygon && <polygon className="radar-score" points={polygonPoints} />}
         {chartItems.map((item, index) => {
-          if (!item.attempts) return null;
           const angle = -Math.PI / 2 + (index * 2 * Math.PI) / pointCount;
           const point = getRadarPoint(center, maxRadius * (item.precision / 100), angle);
-          return <circle className="radar-dot" cx={point.x} cy={point.y} key={`dot-${item.category}`} r="4" />;
+          const isActive = activeCategory === item.category;
+
+          return (
+            <g
+              aria-label={`${item.category}: ${item.attempts ? `${item.precision}% de acierto` : "sin respuestas"}`}
+              className="radar-dot-group"
+              key={`dot-${item.category}`}
+              onClick={() => onActiveCategoryChange?.(item)}
+              onFocus={() => onActiveCategoryChange?.(item)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onActiveCategoryChange?.(item);
+                }
+              }}
+              onMouseEnter={() => onActiveCategoryChange?.(item)}
+              role="button"
+              tabIndex={0}
+            >
+              <title>
+                {item.attempts
+                  ? `${item.category}: ${item.precision}% (${item.correct}/${item.attempts})`
+                  : `${item.category}: sin respuestas todavía`}
+              </title>
+              <circle className="radar-dot-target" cx={point.x} cy={point.y} r="13" />
+              <circle className={isActive ? "radar-dot selected" : "radar-dot"} cx={point.x} cy={point.y} r="4" />
+            </g>
+          );
         })}
       </svg>
       <p>
         {hasAnswers
-          ? "El radar muestra % de acierto por categoría contestada."
+          ? size === "large"
+            ? "Selecciona un punto para ver el detalle."
+            : "Radar por categorías contestadas."
           : "Contesta preguntas para empezar a dibujar tu dominio real."}
       </p>
     </div>
