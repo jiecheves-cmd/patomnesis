@@ -825,9 +825,6 @@ function App() {
             </button>
             <button type="button">Liga</button>
             <button type="button">Hall of Fame</button>
-            <span className="supabase-pill">
-              {supabaseStatus}
-            </span>
           </nav>
         )}
       </header>
