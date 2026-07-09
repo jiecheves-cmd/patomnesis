@@ -4,6 +4,7 @@ import {
   createQuizAttempt,
   createManagedUser,
   deleteManagedUser,
+  fetchOwnAnswerHistory,
   fetchProfiles,
   fetchPublishedQuestions,
   finishQuizAttempt,
@@ -302,6 +303,55 @@ function getSmartSessionSummary(questions, history) {
   return { criteria, weakTopics };
 }
 
+function buildCategoryMastery(history, questions, categories) {
+  const categoryMap = new Map();
+
+  categories.forEach((category) => {
+    categoryMap.set(category, {
+      category,
+      attempts: 0,
+      correct: 0,
+      wrong: 0,
+      precision: 0,
+      questionCount: 0
+    });
+  });
+
+  questions.forEach((question) => {
+    const category = question.category || "Sin clasificar";
+    const current = categoryMap.get(category) || {
+      category,
+      attempts: 0,
+      correct: 0,
+      wrong: 0,
+      precision: 0,
+      questionCount: 0
+    };
+    current.questionCount += 1;
+    categoryMap.set(category, current);
+  });
+
+  history.forEach((answer) => {
+    const category = answer.category || "Sin clasificar";
+    const current = categoryMap.get(category) || {
+      category,
+      attempts: 0,
+      correct: 0,
+      wrong: 0,
+      precision: 0,
+      questionCount: 0
+    };
+
+    current.attempts += 1;
+    if (answer.isCorrect) current.correct += 1;
+    else current.wrong += 1;
+    current.precision = Math.round((current.correct / current.attempts) * 100);
+    categoryMap.set(category, current);
+  });
+
+  return Array.from(categoryMap.values()).filter((item) => item.questionCount > 0 || item.attempts > 0);
+}
+
 function getSessionUser(session) {
   return {
     id: `local-${session.userRole}`,
@@ -387,6 +437,11 @@ function App() {
     return { correct, precision, answered: answerHistory.length };
   }, [answerHistory]);
 
+  const categoryMastery = useMemo(
+    () => buildCategoryMastery(answerHistory, questions, categories),
+    [answerHistory, categories, questions]
+  );
+
   const smartSession = useMemo(
     () => getSmartSessionSummary(questions, answerHistory),
     [answerHistory, questions]
@@ -442,6 +497,14 @@ function App() {
       setSupabaseUser(auth.user);
       setSupabaseProfile(auth.profile);
       if (auth.profile?.role) setRole(auth.profile.role);
+
+      if (auth.user) {
+        try {
+          setAnswerHistory(await fetchOwnAnswerHistory());
+        } catch (error) {
+          console.warn("No se pudo cargar el historial de respuestas", error);
+        }
+      }
 
       if (auth.user && questionsResult.status === "fulfilled") {
         setSupabaseStatus(
@@ -510,6 +573,7 @@ function App() {
       setSupabaseProfile(auth.profile);
       setRole(auth.profile?.role || "student");
       setSupabaseStatus("Supabase conectado · sesión iniciada");
+      setAnswerHistory(await fetchOwnAnswerHistory());
     } catch (error) {
       setAuthError(describeSupabaseError(error));
     } finally {
@@ -529,6 +593,7 @@ function App() {
       await signOutUser();
       setSupabaseUser(null);
       setSupabaseProfile(null);
+      setAnswerHistory([]);
       setRole("student");
       setShowQuiz(false);
       setActiveAttemptId(null);
@@ -618,12 +683,6 @@ function App() {
     setQuizMode("practice");
     setShowQuiz(true);
     await createAttemptForDeck(smartDeck, "smart", "Sesión inteligente", "Adaptativa");
-  }
-
-  function startDifficultyQuiz(nextDifficulty) {
-    setSelectedCategories([]);
-    setDifficulty(nextDifficulty);
-    startQuiz(questions.filter((question) => question.difficulty === nextDifficulty));
   }
 
   function toggleCategory(nextCategory) {
@@ -861,10 +920,10 @@ function App() {
           ) : (
             <StudentLaunch
               categories={categories}
+              categoryMastery={categoryMastery}
               difficulty={difficulty}
               filteredCount={filteredQuestions.length}
               hasMistakes={answers.some((answer) => !answer.isCorrect)}
-              onDifficultyStart={startDifficultyQuiz}
               onQuickStart={startSmartSession}
               onRetryMistakes={retryMistakes}
               onStartExam={() => startQuiz(filteredQuestions, "exam")}
@@ -1112,12 +1171,90 @@ function ProfileDialog({ currentUser, message, onClose, onSave, profile }) {
   );
 }
 
+function getRadarPoint(center, radius, angle) {
+  return {
+    x: center + radius * Math.cos(angle),
+    y: center + radius * Math.sin(angle)
+  };
+}
+
+function CategoryMasteryRadar({ items }) {
+  const activeItems = items.filter((item) => item.questionCount > 0 || item.attempts > 0);
+  const chartItems = [...activeItems]
+    .sort((a, b) => Number(b.attempts > 0) - Number(a.attempts > 0) || b.attempts - a.attempts)
+    .slice(0, 8);
+  const center = 132;
+  const maxRadius = 82;
+  const labelRadius = 112;
+  const pointCount = Math.max(chartItems.length, 3);
+  const polygonPoints = chartItems
+    .map((item, index) => {
+      const angle = -Math.PI / 2 + (index * 2 * Math.PI) / pointCount;
+      const radius = maxRadius * (item.attempts ? item.precision / 100 : 0);
+      const point = getRadarPoint(center, radius, angle);
+      return `${point.x},${point.y}`;
+    })
+    .join(" ");
+  const gridLevels = [0.33, 0.66, 1];
+  const hasAnswers = chartItems.some((item) => item.attempts > 0);
+  const canDrawPolygon = hasAnswers && chartItems.length >= 3;
+
+  if (!chartItems.length) {
+    return <p className="radar-empty">Todavía no hay preguntas clasificadas para construir el mapa.</p>;
+  }
+
+  return (
+    <div className="mastery-radar">
+      <svg aria-label="Mapa de dominio por categoría" role="img" viewBox="0 0 264 264">
+        {gridLevels.map((level) => {
+          const points = Array.from({ length: pointCount }, (_, index) => {
+            const angle = -Math.PI / 2 + (index * 2 * Math.PI) / pointCount;
+            const point = getRadarPoint(center, maxRadius * level, angle);
+            return `${point.x},${point.y}`;
+          }).join(" ");
+          return <polygon className="radar-grid" key={level} points={points} />;
+        })}
+        {chartItems.map((item, index) => {
+          const angle = -Math.PI / 2 + (index * 2 * Math.PI) / pointCount;
+          const axisEnd = getRadarPoint(center, maxRadius, angle);
+          const labelPoint = getRadarPoint(center, labelRadius, angle);
+          return (
+            <g key={`axis-${item.category}`}>
+              <line className="radar-axis" x1={center} x2={axisEnd.x} y1={center} y2={axisEnd.y} />
+              <text
+                className="radar-label"
+                textAnchor={labelPoint.x < center - 12 ? "end" : labelPoint.x > center + 12 ? "start" : "middle"}
+                x={labelPoint.x}
+                y={labelPoint.y}
+              >
+                {item.category.replace("Patología ", "").replace(" y ", " / ")}
+              </text>
+            </g>
+          );
+        })}
+        {canDrawPolygon && <polygon className="radar-score" points={polygonPoints} />}
+        {chartItems.map((item, index) => {
+          if (!item.attempts) return null;
+          const angle = -Math.PI / 2 + (index * 2 * Math.PI) / pointCount;
+          const point = getRadarPoint(center, maxRadius * (item.precision / 100), angle);
+          return <circle className="radar-dot" cx={point.x} cy={point.y} key={`dot-${item.category}`} r="4" />;
+        })}
+      </svg>
+      <p>
+        {hasAnswers
+          ? "El radar muestra % de acierto por categoría contestada."
+          : "Contesta preguntas para empezar a dibujar tu dominio real."}
+      </p>
+    </div>
+  );
+}
+
 function StudentLaunch({
   categories,
+  categoryMastery,
   difficulty,
   filteredCount,
   hasMistakes,
-  onDifficultyStart,
   onQuickStart,
   onRetryMistakes,
   onStartExam,
@@ -1132,15 +1269,6 @@ function StudentLaunch({
   stats,
   toggleCategory
 }) {
-  const difficultyCounts = useMemo(
-    () =>
-      Object.keys(difficultyLabels).map((difficulty) => ({
-        difficulty,
-        count: questions.filter((question) => question.difficulty === difficulty).length
-      })),
-    [questions]
-  );
-
   const focusTopics = smartSession.weakTopics.length
     ? smartSession.weakTopics
     : categories.slice(0, 3);
@@ -1289,21 +1417,20 @@ function StudentLaunch({
             <h3>Tu mapa de dominio</h3>
             <button className="tiny-pill" type="button">Ampliar</button>
           </div>
-          <div className="radar-chart" aria-hidden="true">
-            <span />
-          </div>
-          <div className="difficulty-starts compact">
-            {difficultyCounts.map((item) => (
-              <button
-                className={`difficulty-start ${item.difficulty}`}
-                disabled={!item.count}
-                key={item.difficulty}
-                onClick={() => onDifficultyStart(item.difficulty)}
-                type="button"
-              >
-                <span>{difficultyLabels[item.difficulty]}</span>
-                <b>{item.count}</b>
-              </button>
+          <CategoryMasteryRadar items={categoryMastery} />
+          <div className="mastery-list">
+            {categoryMastery.map((item) => (
+              <div className="mastery-row" key={item.category}>
+                <div>
+                  <strong>{item.category}</strong>
+                  <span>
+                    {item.attempts
+                      ? `${item.correct} aciertos · ${item.wrong} fallos`
+                      : `${item.questionCount} preguntas disponibles`}
+                  </span>
+                </div>
+                <b>{item.attempts ? `${item.precision}%` : "Sin datos"}</b>
+              </div>
             ))}
           </div>
           <button className="secondary retry-full" disabled={!hasMistakes} onClick={onRetryMistakes} type="button">

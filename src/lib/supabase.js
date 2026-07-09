@@ -107,6 +107,42 @@ export async function signInWithPassword({ email, password }) {
   return { profile, session: data.session, user };
 }
 
+export async function fetchOwnAnswerHistory() {
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("quiz_answers")
+    .select(
+      `
+        id,
+        answered_at,
+        is_correct,
+        selected_option_id,
+        questions (
+          id,
+          stem,
+          category,
+          difficulty
+        )
+      `
+    )
+    .order("answered_at", { ascending: true });
+
+  if (error) throw error;
+
+  return (data || [])
+    .filter((row) => row.questions)
+    .map((row) => ({
+      questionId: row.questions.id,
+      questionStem: row.questions.stem,
+      category: row.questions.category,
+      difficulty: row.questions.difficulty,
+      selectedOptionId: row.selected_option_id,
+      isCorrect: row.is_correct,
+      answeredAt: row.answered_at
+    }));
+}
+
 export async function signOutUser() {
   if (!supabase) return;
 
