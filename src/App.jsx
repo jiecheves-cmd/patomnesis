@@ -10,6 +10,7 @@ import {
   getCurrentProfileSession,
   isSupabaseConfigured,
   recordQuizAnswer,
+  sendPasswordResetEmail,
   signInWithPassword,
   signOutUser,
   updateOwnPassword,
@@ -321,6 +322,7 @@ function describeSupabaseError(error) {
 }
 
 function App() {
+  const isPasswordRecovery = new URLSearchParams(window.location.search).get("password_recovery") === "1";
   const [session] = useState(() => getInitialSession());
   const [role, setRole] = useState(session.viewRole);
   const [questions, setQuestions] = useState(seedQuestions);
@@ -346,8 +348,10 @@ function App() {
   );
   const [authLoading, setAuthLoading] = useState(isSupabaseConfigured);
   const [authError, setAuthError] = useState("");
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [profileMessage, setProfileMessage] = useState("");
+  const [profileOpen, setProfileOpen] = useState(isPasswordRecovery);
+  const [profileMessage, setProfileMessage] = useState(
+    isPasswordRecovery ? "Has entrado desde un enlace de recuperación. Escribe una contraseña nueva y guárdala." : ""
+  );
 
   const categories = useMemo(
     () =>
@@ -511,6 +515,10 @@ function App() {
     } finally {
       setAuthLoading(false);
     }
+  }
+
+  async function handlePasswordReset(email) {
+    await sendPasswordResetEmail(email);
   }
 
   async function handleSignOut() {
@@ -749,7 +757,15 @@ function App() {
   }
 
   if (isSupabaseConfigured && authLoading && !supabaseUser) {
-    return <LoginScreen authError="" authLoading={authLoading} onLogin={handleLogin} status={supabaseStatus} />;
+    return (
+      <LoginScreen
+        authError=""
+        authLoading={authLoading}
+        onLogin={handleLogin}
+        onPasswordReset={handlePasswordReset}
+        status={supabaseStatus}
+      />
+    );
   }
 
   if (isSupabaseConfigured && !supabaseUser) {
@@ -758,6 +774,7 @@ function App() {
         authError={authError}
         authLoading={authLoading}
         onLogin={handleLogin}
+        onPasswordReset={handlePasswordReset}
         status={supabaseStatus}
       />
     );
@@ -892,13 +909,29 @@ function App() {
   );
 }
 
-function LoginScreen({ authError, authLoading, onLogin, status }) {
+function LoginScreen({ authError, authLoading, onLogin, onPasswordReset, status }) {
   const [email, setEmail] = useState("");
+  const [isRecoveringPassword, setIsRecoveringPassword] = useState(false);
   const [password, setPassword] = useState("");
+  const [resetError, setResetError] = useState("");
+  const [resetMessage, setResetMessage] = useState("");
 
   function submitLogin(event) {
     event.preventDefault();
     onLogin({ email: email.trim(), password });
+  }
+
+  async function submitPasswordReset(event) {
+    event.preventDefault();
+    setResetError("");
+    setResetMessage("");
+
+    try {
+      await onPasswordReset(email.trim());
+      setResetMessage("Te hemos enviado un enlace para recuperar la contraseña. Revisa tu correo.");
+    } catch (error) {
+      setResetError(describeSupabaseError(error));
+    }
   }
 
   return (
@@ -914,14 +947,18 @@ function LoginScreen({ authError, authLoading, onLogin, status }) {
 
         <div className="auth-copy">
           <p className="eyebrow">Usuarios reales</p>
-          <h2>Entra con tu cuenta</h2>
-          <p>
-            Cada usuario accede con email y contraseña. El rol de alumno, profesor o supervisor
-            se toma del perfil guardado en Supabase.
-          </p>
+          <h2>{isRecoveringPassword ? "Recuperar contraseña" : "Entra con tu cuenta"}</h2>
+          {isRecoveringPassword ? (
+            <p>Escribe tu email y te enviaremos un enlace para crear una contraseña nueva.</p>
+          ) : (
+            <p>
+              Cada usuario accede con email y contraseña. El rol de alumno, profesor o supervisor
+              se toma del perfil guardado en Supabase.
+            </p>
+          )}
         </div>
 
-        <form className="auth-form" onSubmit={submitLogin}>
+        <form className="auth-form" onSubmit={isRecoveringPassword ? submitPasswordReset : submitLogin}>
           <label>
             Email
             <input
@@ -933,20 +970,35 @@ function LoginScreen({ authError, authLoading, onLogin, status }) {
               value={email}
             />
           </label>
-          <label>
-            Contraseña
-            <input
-              autoComplete="current-password"
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="Tu contraseña"
-              required
-              type="password"
-              value={password}
-            />
-          </label>
-          {authError && <p className="auth-error">{authError}</p>}
+          {!isRecoveringPassword && (
+            <label>
+              Contraseña
+              <input
+                autoComplete="current-password"
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="Tu contraseña"
+                required
+                type="password"
+                value={password}
+              />
+            </label>
+          )}
+          {authError && !isRecoveringPassword && <p className="auth-error">{authError}</p>}
+          {resetError && <p className="auth-error">{resetError}</p>}
+          {resetMessage && <p className="auth-success">{resetMessage}</p>}
           <button className="primary-large" disabled={authLoading} type="submit">
-            {authLoading ? "Entrando..." : "Entrar"}
+            {isRecoveringPassword ? "Enviar enlace" : authLoading ? "Entrando..." : "Entrar"}
+          </button>
+          <button
+            className="text-link"
+            onClick={() => {
+              setIsRecoveringPassword((current) => !current);
+              setResetError("");
+              setResetMessage("");
+            }}
+            type="button"
+          >
+            {isRecoveringPassword ? "Volver al acceso" : "He olvidado mi contraseña"}
           </button>
         </form>
 
@@ -1023,6 +1075,13 @@ function ProfileDialog({ currentUser, message, onClose, onSave, profile }) {
             Email
             <input disabled value={profile?.email || ""} />
           </label>
+          <div className="password-advice">
+            <strong>Cambia tu contraseña inicial</strong>
+            <p>
+              Si un supervisor te ha dado una contraseña provisional, cámbiala aquí por una
+              contraseña personal que solo conozcas tú.
+            </p>
+          </div>
           <div className="profile-password-block">
             <p>
               <b>Cambiar contraseña</b>

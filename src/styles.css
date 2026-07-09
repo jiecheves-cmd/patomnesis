@@ -190,6 +190,32 @@ label {
   font-weight: 800;
 }
 
+.auth-success {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(4, 120, 87, 0.22);
+  border-radius: 12px;
+  background: #ecfdf5;
+  color: #047857;
+  font-weight: 800;
+}
+
+.text-link {
+  justify-self: center;
+  margin-top: 0;
+  padding: 6px 8px;
+  background: transparent;
+  color: var(--brand-dark);
+  box-shadow: none;
+}
+
+.text-link:hover,
+.text-link:focus-visible {
+  background: transparent;
+  color: var(--brand);
+  box-shadow: none;
+}
+
 .auth-note {
   padding: 14px;
   border: 1px solid var(--line);
@@ -1694,6 +1720,25 @@ button.compact:focus-visible {
   border: 1px solid rgba(126, 34, 206, 0.16);
   border-radius: 16px;
   background: rgba(243, 232, 255, 0.32);
+}
+
+.password-advice {
+  padding: 14px;
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  border-radius: 16px;
+  background: #fff4d6;
+}
+
+.password-advice strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--ink);
+}
+
+.password-advice p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
 }
 
 .profile-password-block p,

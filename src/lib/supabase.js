@@ -114,6 +114,17 @@ export async function signOutUser() {
   if (error) throw error;
 }
 
+export async function sendPasswordResetEmail(email) {
+  if (!supabase || !email) return;
+
+  const redirectTo = `${window.location.origin}/?password_recovery=1`;
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo
+  });
+
+  if (error) throw error;
+}
+
 export async function updateOwnProfile({ fullName, userId }) {
   if (!supabase || !userId) return null;
 
