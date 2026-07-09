@@ -39,6 +39,41 @@ function mapQuestion(row) {
   };
 }
 
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function mapAnswerHistoryRow(row, profileMap = new Map()) {
+  const question = row.questions;
+  const attempt = row.quiz_attempts;
+  const profile = profileMap.get(attempt?.student_id);
+
+  return {
+    questionId: question.id,
+    questionStem: question.stem,
+    category: question.category,
+    difficulty: question.difficulty,
+    selectedOptionId: row.selected_option_id,
+    isCorrect: row.is_correct,
+    userId: attempt?.student_id,
+    userInitials: (profile?.full_name || profile?.email || "US").slice(0, 2).toUpperCase(),
+    userName: profile?.full_name || profile?.email || "Usuario",
+    userRole: profile?.role || "student",
+    answeredAt: row.answered_at
+  };
+}
+
+async function fetchQuestionById(questionId) {
+  const { data, error } = await supabase
+    .from("questions")
+    .select("*, question_options(*)")
+    .eq("id", questionId)
+    .single();
+
+  if (error) throw error;
+  return mapQuestion(data);
+}
+
 export async function getCurrentProfileSession() {
   if (!supabase) return { profile: null, session: null, user: null };
 
@@ -123,6 +158,9 @@ export async function fetchOwnAnswerHistory() {
           stem,
           category,
           difficulty
+        ),
+        quiz_attempts (
+          student_id
         )
       `
     )
@@ -132,15 +170,42 @@ export async function fetchOwnAnswerHistory() {
 
   return (data || [])
     .filter((row) => row.questions)
-    .map((row) => ({
-      questionId: row.questions.id,
-      questionStem: row.questions.stem,
-      category: row.questions.category,
-      difficulty: row.questions.difficulty,
-      selectedOptionId: row.selected_option_id,
-      isCorrect: row.is_correct,
-      answeredAt: row.answered_at
-    }));
+    .map((row) => mapAnswerHistoryRow(row));
+}
+
+export async function fetchAllAnswerHistory() {
+  if (!supabase) return [];
+
+  const [{ data: answers, error: answersError }, profiles] = await Promise.all([
+    supabase
+      .from("quiz_answers")
+      .select(
+        `
+          id,
+          answered_at,
+          is_correct,
+          selected_option_id,
+          questions (
+            id,
+            stem,
+            category,
+            difficulty
+          ),
+          quiz_attempts (
+            student_id
+          )
+        `
+      )
+      .order("answered_at", { ascending: true }),
+    fetchProfiles()
+  ]);
+
+  if (answersError) throw answersError;
+
+  const profileMap = new Map(profiles.map((profile) => [profile.id, profile]));
+  return (answers || [])
+    .filter((row) => row.questions)
+    .map((row) => mapAnswerHistoryRow(row, profileMap));
 }
 
 export async function signOutUser() {
@@ -262,7 +327,70 @@ export async function fetchPublishedQuestions() {
     .order("created_at", { ascending: true });
 
   if (error) throw error;
-  return (data || []).map(mapQuestion).filter((question) => question.options.length >= 2);
+  return (data || []).map(mapQuestion);
+}
+
+export async function saveQuestionToSupabase(question) {
+  if (!supabase) return question;
+
+  const questionPayload = {
+    stem: question.stem,
+    category: question.category,
+    topic: question.topic || null,
+    difficulty: question.difficulty,
+    explanation: question.explanation || "",
+    key_point: question.keyPoint || null,
+    image_path: question.imageUrl || null,
+    status: "published"
+  };
+
+  const shouldUpdate = isUuid(question.id);
+  const { data: questionRow, error: questionError } = shouldUpdate
+    ? await supabase
+        .from("questions")
+        .update({ ...questionPayload, updated_at: new Date().toISOString() })
+        .eq("id", question.id)
+        .select("id")
+        .single()
+    : await supabase
+        .from("questions")
+        .insert(questionPayload)
+        .select("id")
+        .single();
+
+  if (questionError) throw questionError;
+
+  const questionId = questionRow.id;
+  const { error: deleteOptionsError } = await supabase
+    .from("question_options")
+    .delete()
+    .eq("question_id", questionId);
+
+  if (deleteOptionsError) throw deleteOptionsError;
+
+  const optionRows = question.options
+    .map((option, index) => ({ option, index }))
+    .filter(({ option }) => option.text?.trim())
+    .map(({ option, index }) => ({
+      question_id: questionId,
+      option_text: option.text.trim(),
+      is_correct: index === 0,
+      position: index
+    }));
+
+  if (optionRows.length) {
+    const { error: optionsError } = await supabase.from("question_options").insert(optionRows);
+    if (optionsError) throw optionsError;
+  }
+
+  return fetchQuestionById(questionId);
+}
+
+export async function deleteQuestionFromSupabase(questionId) {
+  if (!supabase || !isUuid(questionId)) return;
+
+  const { error } = await supabase.from("questions").delete().eq("id", questionId);
+  if (error) throw error;
 }
 
 export async function createQuizAttempt({ categoryFilter, difficultyFilter, mode, studentId, total }) {
