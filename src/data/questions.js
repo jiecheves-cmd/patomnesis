@@ -1,8 +1,5 @@
 export const questionThemes = [
-  "Lesión celular y muerte",
-  "Inflamación y reparación",
-  "Trastornos hemodinámicos",
-  "Neoplasia",
+  "Patología general",
   "Patología cardiovascular",
   "Patología respiratoria",
   "Patología digestiva y hepatobiliar",
@@ -12,13 +9,14 @@ export const questionThemes = [
   "Hematopatología",
   "Dermatopatología",
   "Neuropatología",
-  "Patología infecciosa e inmunitaria"
+  "Patología infecciosa",
+  "Patología inmunitaria"
 ];
 
 export const seedQuestions = [
   {
     id: "q-lesion-1",
-    category: "Lesión celular y muerte",
+    category: "Patología general",
     topic: "Hipoxia",
     difficulty: "basic",
     stem: "¿Cuál es el cambio reversible más característico en una célula sometida a hipoxia leve?",
@@ -35,7 +33,7 @@ export const seedQuestions = [
   },
   {
     id: "q-lesion-2",
-    category: "Lesión celular y muerte",
+    category: "Patología general",
     topic: "Necrosis",
     difficulty: "basic",
     stem: "¿Qué patrón de necrosis se asocia de forma clásica al infarto de miocardio?",
@@ -52,7 +50,7 @@ export const seedQuestions = [
   },
   {
     id: "q-inflamacion-1",
-    category: "Inflamación y reparación",
+    category: "Patología general",
     topic: "Inflamación aguda",
     difficulty: "basic",
     stem: "¿Qué célula predomina en la inflamación aguda bacteriana durante las primeras horas?",
@@ -69,7 +67,7 @@ export const seedQuestions = [
   },
   {
     id: "q-inflamacion-2",
-    category: "Inflamación y reparación",
+    category: "Patología general",
     topic: "Granulomas",
     difficulty: "intermediate",
     stem: "Un granuloma con células epitelioides y células gigantes sugiere principalmente qué tipo de respuesta?",
@@ -86,7 +84,7 @@ export const seedQuestions = [
   },
   {
     id: "q-hemo-1",
-    category: "Trastornos hemodinámicos",
+    category: "Patología general",
     topic: "Congestión",
     difficulty: "intermediate",
     stem: "¿Qué hallazgo histológico es más compatible con congestión pulmonar crónica por insuficiencia cardíaca izquierda?",
@@ -103,7 +101,7 @@ export const seedQuestions = [
   },
   {
     id: "q-neoplasia-1",
-    category: "Neoplasia",
+    category: "Patología general",
     topic: "Malignidad",
     difficulty: "basic",
     stem: "¿Qué rasgo histológico suele sugerir malignidad en un tumor epitelial?",
