@@ -930,12 +930,14 @@ button.ghost {
 }
 
 .mastery-radar.large {
-  gap: 12px;
+  gap: 0;
   margin: 0;
+  width: 100%;
 }
 
 .mastery-radar.large svg {
-  width: min(100%, 430px);
+  width: min(100%, 980px);
+  max-height: min(72vh, 720px);
 }
 
 .radar-grid {
@@ -950,22 +952,22 @@ button.ghost {
 }
 
 .radar-score {
-  fill: rgba(245, 158, 11, 0.32);
-  stroke: #8b1fd1;
+  fill: rgba(126, 87, 255, 0.22);
+  stroke: #6d4cff;
   stroke-linejoin: round;
-  stroke-width: 3;
+  stroke-width: 3.5;
 }
 
 .radar-dot {
-  fill: #f59e0b;
+  fill: #6d4cff;
   stroke: #ffffff;
-  stroke-width: 2;
+  stroke-width: 2.5;
 }
 
 .radar-dot.selected {
-  fill: #ffffff;
+  fill: #6d4cff;
   stroke: #8b1fd1;
-  stroke-width: 4;
+  stroke-width: 5;
 }
 
 .radar-dot-target {
@@ -982,6 +984,36 @@ button.ghost {
   r: 7px;
   stroke: #8b1fd1;
   stroke-width: 3;
+}
+
+.radar-label {
+  fill: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.radar-tick {
+  fill: rgba(83, 75, 118, 0.48);
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.radar-tooltip rect {
+  fill: rgba(25, 20, 38, 0.94);
+}
+
+.radar-tooltip text {
+  fill: #ffffff;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.radar-tooltip circle {
+  fill: #6d4cff;
+}
+
+.mastery-radar.large p {
+  display: none;
 }
 
 .mastery-radar p,
@@ -1040,14 +1072,40 @@ button.ghost {
 }
 
 .mastery-dialog {
-  max-width: 980px;
+  width: min(1360px, calc(100vw - 56px));
+  max-width: none;
+  padding: 38px 42px 28px;
+  border-radius: 28px;
+  background: #ffffff;
 }
 
 .mastery-expanded-view {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.75fr);
-  gap: 22px;
-  align-items: center;
+  justify-items: center;
+  min-height: min(72vh, 760px);
+  padding-top: 8px;
+}
+
+.mastery-dialog-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 6px;
+}
+
+.mastery-dialog-heading h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(1.45rem, 2.1vw, 2rem);
+  line-height: 1.05;
+}
+
+.mastery-dialog-heading p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 1rem;
+  font-weight: 740;
 }
 
 .mastery-inspector {
@@ -2110,7 +2168,7 @@ th {
   }
 
   .mastery-radar.large svg {
-    width: min(100%, 330px);
+    width: min(100%, 520px);
   }
 
   .mastery-mini-stats {
