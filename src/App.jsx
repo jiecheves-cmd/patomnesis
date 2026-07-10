@@ -4,6 +4,7 @@ import {
   createQuizAttempt,
   deleteQuestionFromSupabase,
   fetchAllAnswerHistory,
+  fetchGlobalLeaderboard,
   fetchOwnAnswerHistory,
   fetchPublishedQuestions,
   finishQuizAttempt,
@@ -30,6 +31,7 @@ import {
   roleAccess,
   selectSmartQuestions
 } from "./lib/quizEngine.js";
+import { buildProgressSummary } from "./lib/progressSystem.js";
 import { buildImportedQuestions, readQuestionRowsFromFile } from "./lib/importQuestions.js";
 import {
   LoginScreen,
@@ -105,6 +107,7 @@ function App() {
   const [selectedOptionId, setSelectedOptionId] = useState(null);
   const [answers, setAnswers] = useState([]);
   const [answerHistory, setAnswerHistory] = useState([]);
+  const [globalLeaderboard, setGlobalLeaderboard] = useState([]);
   const [activeAttemptId, setActiveAttemptId] = useState(null);
   const [attemptFinished, setAttemptFinished] = useState(false);
   const [editorQuestion, setEditorQuestion] = useState(() => cloneQuestion(emptyQuestion));
@@ -152,22 +155,6 @@ function App() {
     return { correct, precision, answered: answers.length };
   }, [answers]);
 
-  const learningStats = useMemo(() => {
-    const correct = answerHistory.filter((answer) => answer.isCorrect).length;
-    const precision = answerHistory.length ? Math.round((correct / answerHistory.length) * 100) : 0;
-    return { correct, precision, answered: answerHistory.length };
-  }, [answerHistory]);
-
-  const categoryMastery = useMemo(
-    () => buildCategoryMastery(answerHistory, questions, categories),
-    [answerHistory, categories, questions]
-  );
-
-  const smartSession = useMemo(
-    () => getSmartSessionSummary(playableQuestions, answerHistory),
-    [answerHistory, playableQuestions]
-  );
-
   const currentUser = useMemo(() => {
     if (!supabaseUser) return getSessionUser(session);
 
@@ -181,6 +168,39 @@ function App() {
     };
   }, [session, supabaseProfile, supabaseUser]);
   const availableRoles = roleAccess[currentUser.role] || roleAccess.student;
+
+  const currentUserAnswerHistory = useMemo(
+    () => answerHistory.filter((answer) => !supabaseUser || answer.userId === currentUser.id),
+    [answerHistory, currentUser.id, supabaseUser]
+  );
+
+  const studentStats = useMemo(() => {
+    const correct = currentUserAnswerHistory.filter((answer) => answer.isCorrect).length;
+    const precision = currentUserAnswerHistory.length ? Math.round((correct / currentUserAnswerHistory.length) * 100) : 0;
+    return { correct, precision, answered: currentUserAnswerHistory.length };
+  }, [currentUserAnswerHistory]);
+
+  const progressSummary = useMemo(
+    () =>
+      buildProgressSummary({
+        allHistory: answerHistory,
+        currentUser,
+        ownHistory: currentUserAnswerHistory,
+        questions: playableQuestions,
+        remoteLeaderboard: globalLeaderboard
+      }),
+    [answerHistory, currentUser, currentUserAnswerHistory, globalLeaderboard, playableQuestions]
+  );
+
+  const categoryMastery = useMemo(
+    () => buildCategoryMastery(currentUserAnswerHistory, questions, categories),
+    [categories, currentUserAnswerHistory, questions]
+  );
+
+  const smartSession = useMemo(
+    () => getSmartSessionSummary(playableQuestions, currentUserAnswerHistory),
+    [currentUserAnswerHistory, playableQuestions]
+  );
 
   async function loadAnswerHistoryForProfile(profile) {
     if (profile?.role === "supervisor" || profile?.role === "admin") {
@@ -237,6 +257,12 @@ function App() {
       if (auth.user) {
         try {
           setAnswerHistory(await loadAnswerHistoryForProfile(auth.profile));
+          fetchGlobalLeaderboard()
+            .then(setGlobalLeaderboard)
+            .catch((error) => {
+              console.warn("No se pudo cargar el ranking global", error);
+              setGlobalLeaderboard([]);
+            });
         } catch (error) {
           console.warn("No se pudo cargar el historial de respuestas", error);
         }
@@ -310,6 +336,12 @@ function App() {
       setRole(auth.profile?.role || "student");
       setSupabaseStatus("Supabase conectado · sesión iniciada");
       setAnswerHistory(await loadAnswerHistoryForProfile(auth.profile));
+      try {
+        setGlobalLeaderboard(await fetchGlobalLeaderboard());
+      } catch (error) {
+        console.warn("No se pudo cargar el ranking global", error);
+        setGlobalLeaderboard([]);
+      }
     } catch (error) {
       setAuthError(describeSupabaseError(error));
     } finally {
@@ -330,6 +362,7 @@ function App() {
       setSupabaseUser(null);
       setSupabaseProfile(null);
       setAnswerHistory([]);
+      setGlobalLeaderboard([]);
       setRole("student");
       setShowQuiz(false);
       setActiveAttemptId(null);
@@ -411,7 +444,7 @@ function App() {
   }
 
   async function startSmartSession() {
-    const smartDeck = selectSmartQuestions(playableQuestions, answerHistory, Math.min(10, playableQuestions.length));
+    const smartDeck = selectSmartQuestions(playableQuestions, currentUserAnswerHistory, Math.min(10, playableQuestions.length));
     const nextAttemptId = await createAttemptForDeck(smartDeck, "smart", "Sesión inteligente", "Adaptativa");
     setSelectedCategories([]);
     setDifficulty("Todas");
@@ -452,6 +485,7 @@ function App() {
 
     setAnswers((previous) => [...previous, nextAnswer]);
     setAnswerHistory((previous) => [...previous, nextAnswer]);
+    setGlobalLeaderboard([]);
 
     if (activeAttemptId && isUuid(currentQuestion.id) && isUuid(option.id)) {
       recordQuizAnswer({
@@ -480,7 +514,7 @@ function App() {
 
   function retryMistakes() {
     const latestByQuestion = new Map();
-    answerHistory.forEach((answer) => {
+    currentUserAnswerHistory.forEach((answer) => {
       latestByQuestion.set(answer.questionId, answer);
     });
     const missedIds = Array.from(latestByQuestion.values())
@@ -700,11 +734,12 @@ function App() {
               categoryMastery={categoryMastery}
               difficulty={difficulty}
               filteredCount={filteredQuestions.length}
-              hasMistakes={answerHistory.some((answer) => !answer.isCorrect)}
+              hasMistakes={currentUserAnswerHistory.some((answer) => !answer.isCorrect)}
               onQuickStart={startSmartSession}
               onRetryMistakes={retryMistakes}
               onStartExam={() => startQuiz(filteredQuestions, "exam")}
               onStartFiltered={() => startQuiz()}
+              progress={progressSummary}
               questionCount={questionCount}
               questions={playableQuestions}
               selectedCategories={selectedCategories}
@@ -712,7 +747,7 @@ function App() {
               setDifficulty={setDifficulty}
               setQuestionCount={setQuestionCount}
               smartSession={smartSession}
-              stats={learningStats}
+              stats={studentStats}
               toggleCategory={toggleCategory}
             />
           )}

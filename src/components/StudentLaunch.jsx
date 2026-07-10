@@ -13,6 +13,7 @@ function StudentLaunch({
   onRetryMistakes,
   onStartExam,
   onStartFiltered,
+  progress,
   questionCount,
   questions,
   selectedCategories,
@@ -29,6 +30,15 @@ function StudentLaunch({
     : categories.slice(0, 3);
   const dailyProgress = Math.min(stats.answered, 20);
   const allTopicsSelected = selectedCategories.length === 0;
+  const rankingLabel = progress.rankingPosition ? `#${progress.rankingPosition}` : "-";
+  const streakLabel =
+    progress.streakDays === 1 ? "1 día seguido" : `${progress.streakDays} días seguidos`;
+  const nextLevelText = progress.nextLevel
+    ? `Siguiente: Nivel ${progress.nextLevel.level} · ${progress.nextLevel.name}`
+    : "Nivel máximo alcanzado";
+  const nextRequirementText = progress.nextLevel
+    ? `${progress.xpToNext} XP y ${progress.answersToNext} respuestas para subir`
+    : "Has completado los 10 niveles.";
 
   return (
     <section className="student-dashboard">
@@ -155,16 +165,21 @@ function StudentLaunch({
       <aside className="student-side">
         <section className="progress-card">
           <span>Tu progreso</span>
-          <div className="streak">Racha diaria: 2 días seguidos</div>
-          <strong>#1</strong>
-          <p>posición en el ranking global</p>
+          <div className="streak">Racha diaria: {streakLabel}</div>
+          <strong>{rankingLabel}</strong>
+          <p>
+            posición en el ranking global
+            {progress.leaderboardSize > 1 ? ` de ${progress.leaderboardSize}` : ""}
+          </p>
           <div className="xp-line">
-            <b>{84 + stats.correct * 4} PatoXP acumulados</b>
-            <span><i style={{ width: `${Math.min(100, 35 + stats.correct * 12)}%` }} /></span>
+            <b>{progress.patoXp} PatoXP acumulados</b>
+            <span><i style={{ width: `${progress.progressToNext}%` }} /></span>
           </div>
-          <p>Nivel 1</p>
-          <h3>Aprendiz</h3>
-          <small>Cobertura: {stats.answered} / {questions.length} preguntas</small>
+          <p>Nivel {progress.level}</p>
+          <h3>{progress.levelName}</h3>
+          <small>Cobertura: {progress.coverageAnswered} / {progress.coverageTotal} preguntas</small>
+          <small>{nextLevelText}</small>
+          <small>{nextRequirementText}</small>
         </section>
 
         <section className="map-card">

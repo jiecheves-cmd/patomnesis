@@ -286,3 +286,51 @@ create policy "Students can read own answers"
       and quiz_attempts.student_id = auth.uid()
     )
   );
+
+create or replace function public.get_global_leaderboard()
+returns table (
+  profile_id uuid,
+  email text,
+  full_name text,
+  role text,
+  total_answers bigint,
+  correct_answers bigint,
+  pato_xp bigint,
+  last_answered_at timestamptz
+)
+language sql
+security definer
+set search_path = public
+as $$
+  select
+    profiles.id as profile_id,
+    profiles.email,
+    profiles.full_name,
+    profiles.role,
+    count(quiz_answers.id) as total_answers,
+    count(quiz_answers.id) filter (where quiz_answers.is_correct) as correct_answers,
+    coalesce(
+      sum(
+        2 +
+        case
+          when quiz_answers.is_correct and questions.difficulty = 'advanced' then 12
+          when quiz_answers.is_correct and questions.difficulty = 'intermediate' then 9
+          when quiz_answers.is_correct then 6
+          else 0
+        end
+      ),
+      0
+    ) as pato_xp,
+    max(quiz_answers.answered_at) as last_answered_at
+  from public.profiles
+  left join public.quiz_attempts
+    on quiz_attempts.student_id = profiles.id
+  left join public.quiz_answers
+    on quiz_answers.attempt_id = quiz_attempts.id
+  left join public.questions
+    on questions.id = quiz_answers.question_id
+  group by profiles.id, profiles.email, profiles.full_name, profiles.role
+  order by pato_xp desc, correct_answers desc, total_answers desc, last_answered_at asc nulls last;
+$$;
+
+grant execute on function public.get_global_leaderboard() to authenticated;

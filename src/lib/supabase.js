@@ -208,6 +208,14 @@ export async function fetchAllAnswerHistory() {
     .map((row) => mapAnswerHistoryRow(row, profileMap));
 }
 
+export async function fetchGlobalLeaderboard() {
+  if (!supabase) return [];
+
+  const { data, error } = await supabase.rpc("get_global_leaderboard");
+  if (error) throw error;
+  return data || [];
+}
+
 export async function signOutUser() {
   if (!supabase) return;
 
