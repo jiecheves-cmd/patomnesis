@@ -287,7 +287,9 @@ create policy "Students can read own answers"
     )
   );
 
-create or replace function public.get_global_leaderboard()
+drop function if exists public.get_global_leaderboard();
+
+create function public.get_global_leaderboard()
 returns table (
   profile_id uuid,
   email text,
@@ -295,7 +297,7 @@ returns table (
   role text,
   total_answers bigint,
   correct_answers bigint,
-  pato_xp bigint,
+  pato_xp numeric(12, 2),
   last_answered_at timestamptz
 )
 language sql
@@ -309,18 +311,20 @@ as $$
     profiles.role,
     count(quiz_answers.id) as total_answers,
     count(quiz_answers.id) filter (where quiz_answers.is_correct) as correct_answers,
-    coalesce(
+    greatest(
+      0,
+      coalesce(
       sum(
-        2 +
         case
-          when quiz_answers.is_correct and questions.difficulty = 'advanced' then 12
-          when quiz_answers.is_correct and questions.difficulty = 'intermediate' then 9
-          when quiz_answers.is_correct then 6
-          else 0
+          when quiz_answers.is_correct and questions.difficulty = 'advanced' then 3
+          when quiz_answers.is_correct and questions.difficulty = 'intermediate' then 2
+          when quiz_answers.is_correct then 1
+          else -0.33
         end
       ),
       0
-    ) as pato_xp,
+      )
+    )::numeric(12, 2) as pato_xp,
     max(quiz_answers.answered_at) as last_answered_at
   from public.profiles
   left join public.quiz_attempts

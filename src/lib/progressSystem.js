@@ -1,21 +1,27 @@
 const PATO_LEVELS = [
   { level: 1, name: "Aprendiz", minXp: 0, minAnswers: 0 },
-  { level: 2, name: "Observador", minXp: 100, minAnswers: 15 },
-  { level: 3, name: "Explorador", minXp: 250, minAnswers: 30 },
-  { level: 4, name: "Analista", minXp: 500, minAnswers: 60 },
-  { level: 5, name: "Clínico", minXp: 850, minAnswers: 100 },
-  { level: 6, name: "Diagnóstico", minXp: 1300, minAnswers: 160 },
-  { level: 7, name: "Consultor", minXp: 1900, minAnswers: 240 },
-  { level: 8, name: "Experto", minXp: 2700, minAnswers: 340 },
-  { level: 9, name: "Maestro", minXp: 3800, minAnswers: 480 },
-  { level: 10, name: "Referente", minXp: 5200, minAnswers: 650 }
+  { level: 2, name: "Observador", minXp: 10, minAnswers: 15 },
+  { level: 3, name: "Explorador", minXp: 30, minAnswers: 30 },
+  { level: 4, name: "Analista", minXp: 70, minAnswers: 60 },
+  { level: 5, name: "Clínico", minXp: 130, minAnswers: 100 },
+  { level: 6, name: "Diagnóstico", minXp: 220, minAnswers: 160 },
+  { level: 7, name: "Consultor", minXp: 350, minAnswers: 240 },
+  { level: 8, name: "Experto", minXp: 520, minAnswers: 340 },
+  { level: 9, name: "Maestro", minXp: 750, minAnswers: 480 },
+  { level: 10, name: "Referente", minXp: 1050, minAnswers: 650 }
 ];
 
-const DIFFICULTY_CORRECT_BONUS = {
-  basic: 6,
-  intermediate: 9,
-  advanced: 12
+const CORRECT_XP_BY_DIFFICULTY = {
+  basic: 1,
+  intermediate: 2,
+  advanced: 3
 };
+
+const INCORRECT_XP = -0.33;
+
+function roundXp(value) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
 
 function getLocalDateKey(value) {
   if (!value) return "";
@@ -36,13 +42,13 @@ function shiftDateKey(dateKey, days) {
 }
 
 function getAnswerXp(answer) {
-  const baseXp = 2;
-  if (!answer?.isCorrect) return baseXp;
-  return baseXp + (DIFFICULTY_CORRECT_BONUS[answer.difficulty] || DIFFICULTY_CORRECT_BONUS.basic);
+  if (!answer?.isCorrect) return INCORRECT_XP;
+  return CORRECT_XP_BY_DIFFICULTY[answer.difficulty] || CORRECT_XP_BY_DIFFICULTY.basic;
 }
 
 function calculatePatoXp(history) {
-  return history.reduce((total, answer) => total + getAnswerXp(answer), 0);
+  const total = history.reduce((sum, answer) => sum + getAnswerXp(answer), 0);
+  return roundXp(Math.max(0, total));
 }
 
 function calculateStreak(history, now = new Date()) {
@@ -89,7 +95,7 @@ function getLevelProgress(xp, answered) {
     currentLevel,
     nextLevel,
     progressToNext: Math.round(Math.min(xpProgress, answerProgress) * 100),
-    xpToNext: Math.max(0, nextLevel.minXp - xp),
+    xpToNext: roundXp(Math.max(0, nextLevel.minXp - xp)),
     answersToNext: Math.max(0, nextLevel.minAnswers - answered)
   };
 }
@@ -113,9 +119,11 @@ function buildLeaderboardFromHistory(history) {
     users.set(userId, current);
   });
 
-  return Array.from(users.values()).sort(
+  return Array.from(users.values())
+    .map((user) => ({ ...user, patoXp: roundXp(Math.max(0, user.patoXp)) }))
+    .sort(
     (a, b) => b.patoXp - a.patoXp || b.correct - a.correct || b.answered - a.answered
-  );
+    );
 }
 
 function normalizeRemoteLeaderboard(rows) {
