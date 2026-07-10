@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { questionThemes, roleLabels, seedQuestions } from "./data/questions.js";
+import { useIdleLogout } from "./lib/idleLogout.js";
 import {
   createQuizAttempt,
   deleteQuestionFromSupabase,
@@ -316,6 +317,8 @@ function App() {
       console.warn("No se pudo cerrar el intento en Supabase", error);
     });
   }, [activeAttemptId, answers, attemptFinished, currentIndex, deck.length, showQuiz]);
+
+  useIdleLogout(Boolean(isSupabaseConfigured && supabaseUser), handleSignOut, 30 * 60 * 1000);
 
   function changeRole(nextRole) {
     if (!availableRoles.includes(nextRole)) return;
