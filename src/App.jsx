@@ -456,7 +456,7 @@ function App() {
     setCurrentIndex(0);
     setSelectedOptionId(null);
     setAnswers([]);
-    setQuizMode("practice");
+    setQuizMode("smart");
     setShowQuiz(true);
   }
 
@@ -469,7 +469,7 @@ function App() {
   }
 
   function answerQuestion(option) {
-    if (!currentQuestion || (quizMode === "practice" && selectedOptionId)) return;
+    if (!currentQuestion || (quizMode !== "exam" && selectedOptionId)) return;
     const correctOption = currentQuestion.options.find((item) => item.isCorrect);
     const nextAnswer = {
       questionId: currentQuestion.id,
@@ -512,6 +512,17 @@ function App() {
 
   function nextQuestion() {
     setSelectedOptionId(null);
+    if (quizMode === "smart") {
+      const answeredIds = new Set(deck.slice(0, currentIndex + 1).map((question) => question.id));
+      const candidates = playableQuestions.filter((question) => !answeredIds.has(question.id));
+      const remainingCount = deck.length - currentIndex - 1;
+      const adaptedRemainder = selectSmartQuestions(
+        candidates,
+        currentUserAnswerHistory,
+        Math.min(remainingCount, candidates.length)
+      );
+      setDeck((previous) => [...previous.slice(0, currentIndex + 1), ...adaptedRemainder]);
+    }
     setCurrentIndex((index) => index + 1);
   }
 

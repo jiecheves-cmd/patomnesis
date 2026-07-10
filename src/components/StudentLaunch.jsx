@@ -47,7 +47,7 @@ function StudentLaunch({
           <div>
             <p className="smart-label">Sesión inteligente</p>
             <h2>Hasta 10 preguntas adaptadas a ti</h2>
-            <p>Tus puntos más débiles de hoy:</p>
+            <p>{smartSession.hasActivityToday ? "Tus puntos más débiles de hoy:" : "Tu punto de partida:"}</p>
             <div className="focus-chips">
               {focusTopics.map((topic) => (
                 <span key={topic}>{topic}</span>

@@ -24,6 +24,29 @@ function prepareDeck(source, count) {
     .map((question) => shuffleQuestionOptions(question));
 }
 
+function timestampOf(answer) {
+  const timestamp = Date.parse(answer?.answeredAt || "");
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function sortHistory(history) {
+  return history
+    .map((answer, index) => ({ answer, index, timestamp: timestampOf(answer) }))
+    .sort((a, b) => a.timestamp - b.timestamp || a.index - b.index)
+    .map(({ answer }) => answer);
+}
+
+function isAnswerFromToday(answer, now = new Date()) {
+  const timestamp = timestampOf(answer);
+  if (!timestamp) return false;
+  const date = new Date(timestamp);
+  return (
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate()
+  );
+}
+
 const roleAliases = {
   alumno: "student",
   profesor: "teacher",
@@ -57,21 +80,38 @@ function getInitialSession() {
 }
 
 function buildLearningProfile(history, questions) {
+  const orderedHistory = sortHistory(history);
+  const recentHistory = orderedHistory.slice(-30);
   const categoryStats = new Map();
   const questionStats = new Map();
 
   questions.forEach((question) => {
     categoryStats.set(question.category, { attempts: 0, correct: 0, wrong: 0, precision: 100 });
-    questionStats.set(question.id, { attempts: 0, correct: 0, wrong: 0, lastSeen: 0 });
+    questionStats.set(question.id, {
+      attempts: 0,
+      correct: 0,
+      wrong: 0,
+      lastSeen: 0,
+      latestCorrect: null,
+      recentWrongWeight: 0
+    });
   });
 
-  history.forEach((answer, index) => {
+  orderedHistory.forEach((answer, index) => {
     const category = categoryStats.get(answer.category) || { attempts: 0, correct: 0, wrong: 0, precision: 100 };
-    const question = questionStats.get(answer.questionId) || { attempts: 0, correct: 0, wrong: 0, lastSeen: 0 };
+    const question = questionStats.get(answer.questionId) || {
+      attempts: 0,
+      correct: 0,
+      wrong: 0,
+      lastSeen: 0,
+      latestCorrect: null,
+      recentWrongWeight: 0
+    };
 
     category.attempts += 1;
     question.attempts += 1;
     question.lastSeen = index + 1;
+    question.latestCorrect = answer.isCorrect;
 
     if (answer.isCorrect) {
       category.correct += 1;
@@ -86,19 +126,38 @@ function buildLearningProfile(history, questions) {
     questionStats.set(answer.questionId, question);
   });
 
-  const weakCategories = Array.from(categoryStats.entries())
+  recentHistory.forEach((answer, index) => {
+    if (answer.isCorrect) return;
+    const question = questionStats.get(answer.questionId);
+    if (!question) return;
+    // Un fallo de la última respuesta pesa 1; el más antiguo de la ventana, 1/30.
+    question.recentWrongWeight += (index + 1) / recentHistory.length;
+  });
+
+  const recentCategoryStats = new Map();
+  recentHistory.forEach((answer) => {
+    const current = recentCategoryStats.get(answer.category) || { attempts: 0, correct: 0, wrong: 0, precision: 100 };
+    current.attempts += 1;
+    if (answer.isCorrect) current.correct += 1;
+    else current.wrong += 1;
+    current.precision = Math.round((current.correct / current.attempts) * 100);
+    recentCategoryStats.set(answer.category, current);
+  });
+
+  const weakCategories = Array.from(recentCategoryStats.entries())
     .filter(([, value]) => value.attempts > 0)
     .sort((a, b) => a[1].precision - b[1].precision || b[1].wrong - a[1].wrong)
     .map(([category]) => category);
 
-  return { categoryStats, questionStats, weakCategories };
+  return { categoryStats, questionStats, recentCategoryStats, weakCategories };
 }
 
 function getDifficultyPlan(history) {
-  if (history.length < 4) return { basic: 3, intermediate: 2, advanced: 1 };
+  const recentHistory = sortHistory(history).slice(-20);
+  if (recentHistory.length < 4) return { basic: 3, intermediate: 2, advanced: 1 };
 
-  const correct = history.filter((answer) => answer.isCorrect).length;
-  const precision = Math.round((correct / history.length) * 100);
+  const correct = recentHistory.filter((answer) => answer.isCorrect).length;
+  const precision = Math.round((correct / recentHistory.length) * 100);
 
   if (precision < 55) return { basic: 4, intermediate: 2, advanced: 0 };
   if (precision < 80) return { basic: 2, intermediate: 3, advanced: 1 };
@@ -114,8 +173,15 @@ function selectSmartQuestions(questions, history, count) {
 
   const scoredQuestions = questions
     .map((question) => {
-      const questionStats = profile.questionStats.get(question.id) || { attempts: 0, correct: 0, wrong: 0, lastSeen: 0 };
-      const categoryStats = profile.categoryStats.get(question.category) || { attempts: 0, precision: 100, wrong: 0 };
+      const questionStats = profile.questionStats.get(question.id) || {
+        attempts: 0,
+        correct: 0,
+        wrong: 0,
+        lastSeen: 0,
+        latestCorrect: null,
+        recentWrongWeight: 0
+      };
+      const categoryStats = profile.recentCategoryStats.get(question.category) || { attempts: 0, precision: 100, wrong: 0 };
       const isWeakCategory = profile.weakCategories.slice(0, 3).includes(question.category);
       const isNew = questionStats.attempts === 0;
       const difficultyNeed = difficultyPlan[question.difficulty] || 0;
@@ -124,12 +190,13 @@ function selectSmartQuestions(questions, history, count) {
       return {
         question,
         score:
-          questionStats.wrong * 6 +
+          questionStats.recentWrongWeight * 8 +
+          (questionStats.latestCorrect === false ? 4 : 0) +
           (isWeakCategory ? 4 : 0) +
           (isNew ? 3 : 0) +
           difficultyNeed * 1.8 +
           (categoryStats.precision < 70 ? 2 : 0) -
-          questionStats.correct * 0.9 -
+          (questionStats.latestCorrect === true ? 1.5 : 0) -
           recencyPenalty
       };
     })
@@ -153,16 +220,17 @@ function selectSmartQuestions(questions, history, count) {
 }
 
 function getSmartSessionSummary(questions, history) {
-  const profile = buildLearningProfile(history, questions);
+  const todayHistory = history.filter((answer) => isAnswerFromToday(answer));
+  const profile = buildLearningProfile(todayHistory, questions);
   const starterTopics = Array.from(new Set(questions.map((question) => question.category))).slice(0, 3);
   const weakTopics = profile.weakCategories.length
     ? profile.weakCategories.slice(0, 3)
     : starterTopics;
-  const criteria = history.length
+  const criteria = todayHistory.length
     ? ["Fallos recientes", "Áreas débiles", "Dificultad adaptativa", "Preguntas no vistas"]
     : ["Diagnóstico inicial", "Variedad de temas", "Base e intermedia", "Preguntas no vistas"];
 
-  return { criteria, weakTopics };
+  return { criteria, weakTopics, hasActivityToday: todayHistory.length > 0 };
 }
 
 function buildCategoryMastery(history, questions, categories) {
@@ -242,6 +310,7 @@ export {
   roleAccess,
   managedRoleOptions,
   getInitialSession,
+  isAnswerFromToday,
   buildLearningProfile,
   getDifficultyPlan,
   selectSmartQuestions,
