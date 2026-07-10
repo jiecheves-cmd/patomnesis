@@ -1,14 +1,14 @@
 const PATO_LEVELS = [
-  { level: 1, name: "Larva de Laboratorio", minXp: 0, minAnswers: 0 },
-  { level: 2, name: "Aprendiz de Formol", minXp: 50, minAnswers: 20 },
-  { level: 3, name: "Cazador de Portaobjetos", minXp: 200, minAnswers: 45 },
-  { level: 4, name: "Sabueso de Biopsias", minXp: 400, minAnswers: 90 },
-  { level: 5, name: "Domador del Microscopio", minXp: 700, minAnswers: 150 },
-  { level: 6, name: "Detective de Tejidos", minXp: 1100, minAnswers: 240 },
-  { level: 7, name: "Oráculo del Diagnóstico", minXp: 1600, minAnswers: 360 },
-  { level: 8, name: "Maestro de la Patología", minXp: 2200, minAnswers: 520 },
-  { level: 9, name: "Leyenda de la Academia", minXp: 3000, minAnswers: 720 },
-  { level: 10, name: "Patólogo Supremo", minXp: 4000, minAnswers: 1000 }
+  { level: 1, name: "Larva de Laboratorio", minXp: 0, minAccuracy: 0 },
+  { level: 2, name: "Aprendiz de Formol", minXp: 50, minAccuracy: 50 },
+  { level: 3, name: "Cazador de Portaobjetos", minXp: 200, minAccuracy: 50 },
+  { level: 4, name: "Sabueso de Biopsias", minXp: 400, minAccuracy: 55 },
+  { level: 5, name: "Domador del Microscopio", minXp: 700, minAccuracy: 55 },
+  { level: 6, name: "Detective de Tejidos", minXp: 1100, minAccuracy: 60 },
+  { level: 7, name: "Oráculo del Diagnóstico", minXp: 1600, minAccuracy: 65 },
+  { level: 8, name: "Maestro de la Patología", minXp: 2200, minAccuracy: 70 },
+  { level: 9, name: "Leyenda de la Academia", minXp: 3000, minAccuracy: 75 },
+  { level: 10, name: "Patólogo Supremo", minXp: 4000, minAccuracy: 80 }
 ];
 
 const CORRECT_XP_BY_DIFFICULTY = {
@@ -69,9 +69,9 @@ function calculateStreak(history, now = new Date()) {
   return streak;
 }
 
-function getLevelProgress(xp, answered) {
+function getLevelProgress(xp, accuracy) {
   const currentLevel =
-    [...PATO_LEVELS].reverse().find((level) => xp >= level.minXp && answered >= level.minAnswers) || PATO_LEVELS[0];
+    [...PATO_LEVELS].reverse().find((level) => xp >= level.minXp && accuracy >= level.minAccuracy) || PATO_LEVELS[0];
   const nextLevel = PATO_LEVELS.find((level) => level.level === currentLevel.level + 1) || null;
 
   if (!nextLevel) {
@@ -80,23 +80,23 @@ function getLevelProgress(xp, answered) {
       nextLevel: null,
       progressToNext: 100,
       xpToNext: 0,
-      answersToNext: 0
+      accuracyToNext: 0
     };
   }
 
   const previousXp = currentLevel.minXp;
-  const previousAnswers = currentLevel.minAnswers;
+  const previousAccuracy = currentLevel.minAccuracy;
   const xpSpan = Math.max(1, nextLevel.minXp - previousXp);
-  const answerSpan = Math.max(1, nextLevel.minAnswers - previousAnswers);
+  const accuracySpan = Math.max(1, nextLevel.minAccuracy - previousAccuracy);
   const xpProgress = Math.min(1, Math.max(0, (xp - previousXp) / xpSpan));
-  const answerProgress = Math.min(1, Math.max(0, (answered - previousAnswers) / answerSpan));
+  const accuracyProgress = Math.min(1, Math.max(0, (accuracy - previousAccuracy) / accuracySpan));
 
   return {
     currentLevel,
     nextLevel,
-    progressToNext: Math.round(Math.min(xpProgress, answerProgress) * 100),
+    progressToNext: Math.round(Math.min(xpProgress, accuracyProgress) * 100),
     xpToNext: roundXp(Math.max(0, nextLevel.minXp - xp)),
-    answersToNext: Math.max(0, nextLevel.minAnswers - answered)
+    accuracyToNext: Math.max(0, Math.round((nextLevel.minAccuracy - accuracy) * 10) / 10)
   };
 }
 
@@ -145,7 +145,8 @@ function buildProgressSummary({ allHistory, currentUser, ownHistory, questions, 
   const streakDays = calculateStreak(ownHistory);
   const uniqueAnswered = new Set(ownHistory.map((answer) => answer.questionId)).size;
   const coverageTotal = questions.length;
-  const levelProgress = getLevelProgress(patoXp, answered);
+  const accuracy = answered ? Math.round((correct / answered) * 1000) / 10 : 0;
+  const levelProgress = getLevelProgress(patoXp, accuracy);
   const leaderboard = remoteLeaderboard.length
     ? normalizeRemoteLeaderboard(remoteLeaderboard)
     : buildLeaderboardFromHistory(allHistory.length ? allHistory : ownHistory);
@@ -153,6 +154,7 @@ function buildProgressSummary({ allHistory, currentUser, ownHistory, questions, 
   const rankingPosition = positionIndex >= 0 ? positionIndex + 1 : leaderboard.length ? null : 1;
 
   return {
+    accuracy,
     answered,
     correct,
     coverageAnswered: uniqueAnswered,
@@ -166,7 +168,7 @@ function buildProgressSummary({ allHistory, currentUser, ownHistory, questions, 
     rankingPosition,
     streakDays,
     xpToNext: levelProgress.xpToNext,
-    answersToNext: levelProgress.answersToNext
+    accuracyToNext: levelProgress.accuracyToNext
   };
 }
 

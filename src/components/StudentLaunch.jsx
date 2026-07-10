@@ -37,7 +37,7 @@ function StudentLaunch({
     ? `Siguiente: Nivel ${progress.nextLevel.level} · ${progress.nextLevel.name}`
     : "Nivel máximo alcanzado";
   const nextRequirementText = progress.nextLevel
-    ? `${progress.xpToNext} XP y ${progress.answersToNext} respuestas para subir`
+    ? `${progress.xpToNext} XP y ${progress.accuracyToNext}% de precisión para subir`
     : "Has completado los 10 niveles.";
 
   return (
