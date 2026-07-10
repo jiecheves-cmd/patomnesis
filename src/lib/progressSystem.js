@@ -1,14 +1,14 @@
 const PATO_LEVELS = [
-  { level: 1, name: "Aprendiz", minXp: 0, minAnswers: 0 },
-  { level: 2, name: "Observador", minXp: 10, minAnswers: 15 },
-  { level: 3, name: "Explorador", minXp: 30, minAnswers: 30 },
-  { level: 4, name: "Analista", minXp: 70, minAnswers: 60 },
-  { level: 5, name: "Clínico", minXp: 130, minAnswers: 100 },
-  { level: 6, name: "Diagnóstico", minXp: 220, minAnswers: 160 },
-  { level: 7, name: "Consultor", minXp: 350, minAnswers: 240 },
-  { level: 8, name: "Experto", minXp: 520, minAnswers: 340 },
-  { level: 9, name: "Maestro", minXp: 750, minAnswers: 480 },
-  { level: 10, name: "Referente", minXp: 1050, minAnswers: 650 }
+  { level: 1, name: "Larva de Laboratorio", minXp: 0, minAnswers: 0 },
+  { level: 2, name: "Aprendiz de Formol", minXp: 15, minAnswers: 20 },
+  { level: 3, name: "Cazador de Portaobjetos", minXp: 45, minAnswers: 45 },
+  { level: 4, name: "Sabueso de Biopsias", minXp: 100, minAnswers: 90 },
+  { level: 5, name: "Domador del Microscopio", minXp: 190, minAnswers: 150 },
+  { level: 6, name: "Detective de Tejidos", minXp: 340, minAnswers: 240 },
+  { level: 7, name: "Oráculo del Diagnóstico", minXp: 560, minAnswers: 360 },
+  { level: 8, name: "Maestro de la Patología", minXp: 880, minAnswers: 520 },
+  { level: 9, name: "Leyenda de la Academia", minXp: 1350, minAnswers: 720 },
+  { level: 10, name: "Patólogo Supremo", minXp: 2000, minAnswers: 1000 }
 ];
 
 const CORRECT_XP_BY_DIFFICULTY = {
