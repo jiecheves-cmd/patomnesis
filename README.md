@@ -71,4 +71,4 @@ Comprueba en Supabase que la función tiene disponible la secret `SUPABASE_SERVI
 
 Si Supabase no esta configurado o no responde, la app cae automaticamente a demo local con `seedQuestions`.
 
-Las imagenes deben vivir en Supabase Storage, no en GitHub.
+Las imagenes deben vivir preferiblemente en el bucket publico `question-images` de Supabase Storage, no en GitHub. El campo de imagen acepta la URL publica completa o la ruta del objeto dentro del bucket (por ejemplo, `microscopia/caso-01.jpg`). Tambien se convierten automaticamente los enlaces compartidos de Google Drive y Dropbox, aunque Storage es mas fiable para evitar bloqueos externos.

@@ -9,3 +9,4 @@ export { default as TeacherStats } from "./TeacherStats.jsx";
 export { default as SupervisorDashboard } from "./SupervisorDashboard.jsx";
 export { default as SupervisorUsers } from "./SupervisorUsers.jsx";
 export { default as Metric } from "./Metric.jsx";
+export { default as QuestionImage } from "./QuestionImage.jsx";

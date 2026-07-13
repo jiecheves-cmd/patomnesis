@@ -1265,6 +1265,49 @@ button.ghost {
   margin-bottom: 16px;
 }
 
+.question-image-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  border: 1px solid #f1b8c2;
+  border-radius: 8px;
+  background: #fff1f3;
+  color: var(--bad);
+}
+
+.question-image-error a {
+  color: inherit;
+  font-weight: 800;
+}
+
+.image-preview {
+  display: grid;
+  gap: 8px;
+}
+
+.image-preview > span {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.image-preview .question-image {
+  max-height: 260px;
+  margin-bottom: 0;
+}
+
+.image-preview .question-image-error {
+  margin-bottom: 0;
+}
+
+.bank-question-image {
+  max-width: 520px;
+  max-height: 260px;
+}
+
 .answers {
   display: grid;
   gap: 10px;

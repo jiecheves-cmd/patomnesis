@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from "react";
 import { difficultyLabels, questionThemes } from "../data/questions.js";
 import { normalizeText } from "../lib/importQuestions.js";
+import QuestionImage from "./QuestionImage.jsx";
 import TeacherStats from "./TeacherStats.jsx";
 
 function TeacherBank({
@@ -212,8 +213,18 @@ function TeacherBank({
                 </label>
                 <label className="wide">
                   URL de imagen
-                  <input value={editorQuestion.imageUrl} onChange={(event) => updateEditorField("imageUrl", event.target.value)} />
+                  <input
+                    placeholder="URL directa, enlace de Drive/Dropbox o ruta de Supabase Storage"
+                    value={editorQuestion.imageUrl}
+                    onChange={(event) => updateEditorField("imageUrl", event.target.value)}
+                  />
                 </label>
+                {editorQuestion.imageUrl && (
+                  <div className="wide image-preview">
+                    <span>Vista previa</span>
+                    <QuestionImage preview value={editorQuestion.imageUrl} />
+                  </div>
+                )}
                 {editorQuestion.options.map((option, index) => (
                   <label key={option.id}>
                     {index === 0 ? "Respuesta correcta" : `Distractor ${index}`}
@@ -270,6 +281,7 @@ function TeacherBank({
                     </span>
                     {isExpanded && (
                       <div className="bank-row-detail">
+                        <QuestionImage className="question-image bank-question-image" value={question.imageUrl} />
                         <p>
                           <b>Pregunta:</b> {question.stem}
                         </p>
