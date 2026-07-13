@@ -1,6 +1,7 @@
 import React from "react";
 import { difficultyLabels } from "../data/questions.js";
 import Metric from "./Metric.jsx";
+import QuestionImage from "./QuestionImage.jsx";
 
 function QuizPlayer({
   answers,
@@ -95,9 +96,7 @@ function QuizPlayer({
           </span>
         </div>
         <h2>{currentQuestion.stem}</h2>
-        {currentQuestion.imageUrl && (
-          <img className="question-image" src={currentQuestion.imageUrl} alt="Imagen de la pregunta" />
-        )}
+        <QuestionImage value={currentQuestion.imageUrl} />
         <div className="answers">
           {currentQuestion.options.map((option, index) => {
             const isSelected = selectedOptionId === option.id;
