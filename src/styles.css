@@ -1867,12 +1867,11 @@ button.danger.compact {
 
 .bank-row-topic {
   grid-column: 1;
-  grid-row: 2;
+  grid-row: 3;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
-  margin-left: 112px;
   min-width: 0;
 }
 
@@ -1894,7 +1893,7 @@ button.danger.compact {
 
 .bank-row-actions {
   grid-column: 2;
-  grid-row: 1 / span 2;
+  grid-row: 1 / span 3;
   display: flex;
   gap: 8px;
   align-items: start;
