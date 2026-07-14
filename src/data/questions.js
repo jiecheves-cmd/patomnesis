@@ -6,6 +6,7 @@ export const questionThemes = [
   "Patología renal y urinaria",
   "Patología endocrina",
   "Patología ginecológica y mama",
+  "Patología osteoarticular y tejidos blandos",
   "Hematopatología",
   "Dermatopatología",
   "Neuropatología",
