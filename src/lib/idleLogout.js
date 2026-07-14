@@ -1,55 +1,38 @@
 import { useEffect, useRef } from "react";
 
 const ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "scroll", "touchstart", "wheel"];
+const LAST_ACTIVITY_KEY = "patomnesis_last_activity_at";
 
-function createIdleTimer({
-  clearTimer = clearTimeout,
-  now = Date.now,
-  onTimeout,
-  setTimer = setTimeout,
-  timeoutMs
-}) {
-  let lastActivityAt = now();
-  let timer = null;
-  let timedOut = false;
-
-  function clearScheduledTimer() {
-    if (timer !== null) {
-      clearTimer(timer);
-      timer = null;
-    }
+function markActivityNow() {
+  try {
+    window.localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
+  } catch (error) {
+    // localStorage puede fallar en modo privado; el cierre por inactividad
+    // simplemente no persistirá entre recargas en ese caso.
   }
+}
 
-  function check() {
-    clearScheduledTimer();
-    if (timedOut) return;
-
-    const remainingMs = timeoutMs - (now() - lastActivityAt);
-    if (remainingMs <= 0) {
-      timedOut = true;
-      onTimeout();
-      return;
-    }
-
-    timer = setTimer(check, remainingMs);
+function getMillisSinceLastActivity() {
+  try {
+    const stored = window.localStorage.getItem(LAST_ACTIVITY_KEY);
+    if (!stored) return null;
+    const elapsed = Date.now() - Number(stored);
+    return Number.isFinite(elapsed) ? elapsed : null;
+  } catch (error) {
+    return null;
   }
+}
 
-  function recordActivity() {
-    lastActivityAt = now();
-    timedOut = false;
-    check();
+function clearStoredActivity() {
+  try {
+    window.localStorage.removeItem(LAST_ACTIVITY_KEY);
+  } catch (error) {
+    // Nada que limpiar si localStorage no está disponible.
   }
-
-  check();
-
-  return {
-    check,
-    destroy: clearScheduledTimer,
-    recordActivity
-  };
 }
 
 function useIdleLogout(enabled, onTimeout, timeoutMs) {
+  const timerRef = useRef(null);
   const onTimeoutRef = useRef(onTimeout);
 
   useEffect(() => {
@@ -59,30 +42,28 @@ function useIdleLogout(enabled, onTimeout, timeoutMs) {
   useEffect(() => {
     if (!enabled) return undefined;
 
-    const idleTimer = createIdleTimer({
-      onTimeout: () => onTimeoutRef.current(),
-      timeoutMs
-    });
-
-    function checkWhenVisible() {
-      if (document.visibilityState === "visible") idleTimer.check();
+    function resetTimer() {
+      markActivityNow();
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        clearStoredActivity();
+        onTimeoutRef.current();
+      }, timeoutMs);
     }
 
     ACTIVITY_EVENTS.forEach((eventName) => {
-      window.addEventListener(eventName, idleTimer.recordActivity, { passive: true });
+      window.addEventListener(eventName, resetTimer, { passive: true });
     });
-    window.addEventListener("focus", idleTimer.check);
-    document.addEventListener("visibilitychange", checkWhenVisible);
+
+    resetTimer();
 
     return () => {
-      idleTimer.destroy();
+      if (timerRef.current) clearTimeout(timerRef.current);
       ACTIVITY_EVENTS.forEach((eventName) => {
-        window.removeEventListener(eventName, idleTimer.recordActivity);
+        window.removeEventListener(eventName, resetTimer);
       });
-      window.removeEventListener("focus", idleTimer.check);
-      document.removeEventListener("visibilitychange", checkWhenVisible);
     };
   }, [enabled, timeoutMs]);
 }
 
-export { createIdleTimer, useIdleLogout };
+export { clearStoredActivity, getMillisSinceLastActivity, useIdleLogout };
