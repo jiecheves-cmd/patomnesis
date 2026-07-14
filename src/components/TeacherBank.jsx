@@ -35,6 +35,15 @@ function TeacherBank({
     return counts;
   }, [questions]);
 
+  const themeCounts = useMemo(() => {
+    const counts = {};
+    questions.forEach((question) => {
+      if (!question.category) return;
+      counts[question.category] = (counts[question.category] || 0) + 1;
+    });
+    return counts;
+  }, [questions]);
+
   const filteredBankQuestions = useMemo(() => {
     const query = normalizeText(bankSearch);
     return questions.filter((question) => {
@@ -165,7 +174,7 @@ function TeacherBank({
                 <option value="Todos">Todos los temas ({questions.length})</option>
                 {questionThemes.map((theme) => (
                   <option key={theme} value={theme}>
-                    {theme}
+                    {theme} ({themeCounts[theme] || 0})
                   </option>
                 ))}
               </select>
