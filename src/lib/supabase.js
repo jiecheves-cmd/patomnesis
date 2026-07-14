@@ -35,7 +35,8 @@ function mapQuestion(row) {
     imageUrl: row.image_path || "",
     options,
     explanation: row.explanation || "",
-    keyPoint: row.key_point || ""
+    keyPoint: row.key_point || "",
+    status: row.status || "published"
   };
 }
 
@@ -325,13 +326,12 @@ export async function deleteManagedUser(userId) {
   return data;
 }
 
-export async function fetchPublishedQuestions() {
+export async function fetchAllQuestions() {
   if (!supabase) return [];
 
   const { data, error } = await supabase
     .from("questions")
     .select("*, question_options(*)")
-    .eq("status", "published")
     .order("created_at", { ascending: true });
 
   if (error) throw error;
@@ -349,7 +349,7 @@ export async function saveQuestionToSupabase(question) {
     explanation: question.explanation || "",
     key_point: question.keyPoint || null,
     image_path: question.imageUrl || null,
-    status: "published"
+    status: question.status || "draft"
   };
 
   const shouldUpdate = isUuid(question.id);
@@ -392,6 +392,17 @@ export async function saveQuestionToSupabase(question) {
   }
 
   return fetchQuestionById(questionId);
+}
+
+export async function updateQuestionStatus(questionId, status) {
+  if (!supabase || !isUuid(questionId)) return;
+
+  const { error } = await supabase
+    .from("questions")
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq("id", questionId);
+
+  if (error) throw error;
 }
 
 export async function deleteQuestionFromSupabase(questionId) {

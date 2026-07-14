@@ -2227,3 +2227,32 @@ th {
     margin: -30px 0 -38px -14px;
   }
 }
+.status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.status-badge.draft {
+  background: #fff4d6;
+  color: var(--warn);
+}
+
+.status-badge.published {
+  background: #e9f9ee;
+  color: #1a7f4b;
+}
+
+.status-badge.archived {
+  background: #ece9f1;
+  color: var(--muted);
+}
+
+.pending-count {
+  color: var(--warn);
+}
+

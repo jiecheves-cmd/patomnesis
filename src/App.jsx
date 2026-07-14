@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { questionThemes, roleLabels, seedQuestions } from "./data/questions.js";
-import { useIdleLogout } from "./lib/idleLogout.js";
+import { clearStoredActivity, getMillisSinceLastActivity, useIdleLogout } from "./lib/idleLogout.js";
 import {
   createQuizAttempt,
   deleteQuestionFromSupabase,
   fetchAllAnswerHistory,
   fetchGlobalLeaderboard,
   fetchOwnAnswerHistory,
-  fetchPublishedQuestions,
+  fetchAllQuestions,
   finishQuizAttempt,
   getCurrentProfileSession,
   isSupabaseConfigured,
@@ -18,7 +18,8 @@ import {
   signOutUser,
   updateOwnPassword,
   updateOwnProfile,
-  updateOwnUserMetadata
+  updateOwnUserMetadata,
+  updateQuestionStatus
 } from "./lib/supabase.js";
 import {
   cloneQuestion,
@@ -43,6 +44,8 @@ import {
   SupervisorDashboard
 } from "./components/index.js";
 
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
+
 const emptyQuestion = {
   id: "",
   category: "",
@@ -57,7 +60,8 @@ const emptyQuestion = {
     { id: "new-d", text: "", isCorrect: false }
   ],
   explanation: "",
-  keyPoint: ""
+  keyPoint: "",
+  status: "draft"
 };
 
 const LOCAL_QUESTIONS_KEY = "patomnesis.questions.v1";
@@ -89,8 +93,11 @@ function isPlayableQuestion(question) {
   const options = question?.options || [];
   const hasCorrectOption = options.some((option) => option.isCorrect && option.text?.trim());
   const hasDistractor = options.some((option) => !option.isCorrect && option.text?.trim());
+  const isPublished = (question?.status || "published") === "published";
 
-  return Boolean(question?.stem?.trim() && question?.category && options.length >= 2 && hasCorrectOption && hasDistractor);
+  return Boolean(
+    isPublished && question?.stem?.trim() && question?.category && options.length >= 2 && hasCorrectOption && hasDistractor
+  );
 }
 
 function App() {
@@ -224,8 +231,18 @@ function App() {
       setAuthLoading(true);
       setSupabaseStatus("Conectando Supabase...");
 
+      const idleElapsed = getMillisSinceLastActivity();
+      if (idleElapsed !== null && idleElapsed >= IDLE_TIMEOUT_MS) {
+        try {
+          await signOutUser();
+        } catch (error) {
+          console.warn("No se pudo cerrar la sesión inactiva", error);
+        }
+        clearStoredActivity();
+      }
+
       const results = await Promise.allSettled([
-        fetchPublishedQuestions(),
+        fetchAllQuestions(),
         getCurrentProfileSession()
       ]);
 
@@ -318,7 +335,7 @@ function App() {
     });
   }, [activeAttemptId, answers, attemptFinished, currentIndex, deck.length, showQuiz]);
 
-  useIdleLogout(Boolean(isSupabaseConfigured && supabaseUser), handleSignOut, 30 * 60 * 1000);
+  useIdleLogout(Boolean(isSupabaseConfigured && supabaseUser), handleSignOut, IDLE_TIMEOUT_MS);
 
   function changeRole(nextRole) {
     if (!availableRoles.includes(nextRole)) return;
@@ -362,6 +379,7 @@ function App() {
 
     try {
       await signOutUser();
+      clearStoredActivity();
       setSupabaseUser(null);
       setSupabaseProfile(null);
       setAnswerHistory([]);
@@ -627,6 +645,29 @@ function App() {
     }
   }
 
+  const statusMessages = {
+    draft: "Pregunta marcada como pendiente de revisar.",
+    published: "Pregunta publicada.",
+    archived: "Pregunta archivada."
+  };
+
+  async function changeQuestionStatus(questionId, nextStatus) {
+    try {
+      if (supabaseUser) {
+        await updateQuestionStatus(questionId, nextStatus);
+      }
+      setQuestions((previous) =>
+        previous.map((question) => (question.id === questionId ? { ...question, status: nextStatus } : question))
+      );
+      if (editingId === questionId) {
+        setEditorQuestion((question) => ({ ...question, status: nextStatus }));
+      }
+      setImportMessage(statusMessages[nextStatus] || "Estado actualizado.");
+    } catch (error) {
+      setImportMessage(`No se pudo actualizar el estado: ${describeSupabaseError(error)}`);
+    }
+  }
+
   function updateEditorField(field, value) {
     setEditorQuestion((question) => ({ ...question, [field]: value }));
   }
@@ -770,6 +811,7 @@ function App() {
 
       {role === "teacher" && (
         <TeacherBank
+          changeQuestionStatus={changeQuestionStatus}
           deleteQuestion={deleteQuestion}
           editQuestion={editQuestion}
           editingId={editingId}

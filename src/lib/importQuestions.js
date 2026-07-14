@@ -86,7 +86,8 @@ function buildImportedQuestions(rows) {
         isCorrect: optionIndex === 0
       })),
       explanation: getImportValue(row, "explanation"),
-      keyPoint: getImportValue(row, "keyPoint")
+      keyPoint: getImportValue(row, "keyPoint"),
+      status: "draft"
     });
   });
 

@@ -1,10 +1,10 @@
 import React, { useMemo, useRef, useState } from "react";
 import { difficultyLabels, questionThemes } from "../data/questions.js";
 import { normalizeText } from "../lib/importQuestions.js";
-import QuestionImage from "./QuestionImage.jsx";
 import TeacherStats from "./TeacherStats.jsx";
 
 function TeacherBank({
+  changeQuestionStatus,
   deleteQuestion,
   editQuestion,
   editingId,
@@ -21,13 +21,24 @@ function TeacherBank({
   const [bankSearch, setBankSearch] = useState("");
   const [bankTheme, setBankTheme] = useState("Todos");
   const [bankDifficulty, setBankDifficulty] = useState("Todas");
+  const [bankStatus, setBankStatus] = useState("draft");
   const [expandedQuestionId, setExpandedQuestionId] = useState(null);
   const [editorVisible, setEditorVisible] = useState(Boolean(editingId));
   const [teacherTab, setTeacherTab] = useState("questions");
 
+  const statusCounts = useMemo(() => {
+    const counts = { draft: 0, published: 0, archived: 0 };
+    questions.forEach((question) => {
+      const status = question.status || "published";
+      counts[status] = (counts[status] || 0) + 1;
+    });
+    return counts;
+  }, [questions]);
+
   const filteredBankQuestions = useMemo(() => {
     const query = normalizeText(bankSearch);
     return questions.filter((question) => {
+      const status = question.status || "published";
       const matchesSearch =
         !query ||
         [question.stem, question.category, question.topic, question.explanation, question.keyPoint].some((value) =>
@@ -35,9 +46,10 @@ function TeacherBank({
         );
       const matchesTheme = bankTheme === "Todos" || question.category === bankTheme;
       const matchesDifficulty = bankDifficulty === "Todas" || question.difficulty === bankDifficulty;
-      return matchesSearch && matchesTheme && matchesDifficulty;
+      const matchesStatus = bankStatus === "all" || status === bankStatus;
+      return matchesSearch && matchesTheme && matchesDifficulty && matchesStatus;
     });
-  }, [bankDifficulty, bankSearch, bankTheme, questions]);
+  }, [bankDifficulty, bankSearch, bankStatus, bankTheme, questions]);
 
   const bankStats = useMemo(() => {
     const byDifficulty = Object.keys(difficultyLabels).map((difficulty) => ({
@@ -110,7 +122,13 @@ function TeacherBank({
         <>
           <div className="teacher-bank-head">
             <p>
-              <span>{questions.length} preguntas</span> · <strong>{filteredBankQuestions.length} visibles</strong>
+              <span>{questions.length} preguntas</span> ·{" "}
+              {statusCounts.draft > 0 ? (
+                <strong className="pending-count">{statusCounts.draft} pendientes de revisar</strong>
+              ) : (
+                <strong>0 pendientes</strong>
+              )}{" "}
+              · <span>{filteredBankQuestions.length} visibles</span>
             </p>
             <button className="add-link" onClick={handleNewQuestion} type="button">+ Nueva</button>
           </div>
@@ -123,6 +141,23 @@ function TeacherBank({
                 value={bankSearch}
                 onChange={(event) => setBankSearch(event.target.value)}
               />
+            </div>
+            <div className="filter-row">
+              <strong>Estado:</strong>
+              <div className="segmented-filter">
+                <button className={bankStatus === "draft" ? "active" : ""} onClick={() => setBankStatus("draft")} type="button">
+                  Pendientes ({statusCounts.draft})
+                </button>
+                <button className={bankStatus === "published" ? "active" : ""} onClick={() => setBankStatus("published")} type="button">
+                  Publicadas ({statusCounts.published})
+                </button>
+                <button className={bankStatus === "archived" ? "active" : ""} onClick={() => setBankStatus("archived")} type="button">
+                  Archivadas ({statusCounts.archived})
+                </button>
+                <button className={bankStatus === "all" ? "active" : ""} onClick={() => setBankStatus("all")} type="button">
+                  Todas ({questions.length})
+                </button>
+              </div>
             </div>
             <div className="filter-row">
               <strong>Tema:</strong>
@@ -207,24 +242,25 @@ function TeacherBank({
                     ))}
                   </select>
                 </label>
+                <label>
+                  Estado
+                  <select
+                    value={editorQuestion.status || "draft"}
+                    onChange={(event) => updateEditorField("status", event.target.value)}
+                  >
+                    <option value="draft">Pendiente de revisar</option>
+                    <option value="published">Publicada</option>
+                    <option value="archived">Archivada</option>
+                  </select>
+                </label>
                 <label className="wide">
                   Enunciado
                   <textarea value={editorQuestion.stem} onChange={(event) => updateEditorField("stem", event.target.value)} />
                 </label>
                 <label className="wide">
                   URL de imagen
-                  <input
-                    placeholder="URL directa, enlace de Drive/Dropbox o ruta de Supabase Storage"
-                    value={editorQuestion.imageUrl}
-                    onChange={(event) => updateEditorField("imageUrl", event.target.value)}
-                  />
+                  <input value={editorQuestion.imageUrl} onChange={(event) => updateEditorField("imageUrl", event.target.value)} />
                 </label>
-                {editorQuestion.imageUrl && (
-                  <div className="wide image-preview">
-                    <span>Vista previa</span>
-                    <QuestionImage preview value={editorQuestion.imageUrl} />
-                  </div>
-                )}
                 {editorQuestion.options.map((option, index) => (
                   <label key={option.id}>
                     {index === 0 ? "Respuesta correcta" : `Distractor ${index}`}
@@ -253,11 +289,15 @@ function TeacherBank({
               {filteredBankQuestions.map((question) => {
                 const correctOption = question.options.find((option) => option.isCorrect);
                 const isExpanded = expandedQuestionId === question.id;
+                const status = question.status || "published";
+                const statusLabel =
+                  status === "draft" ? "Pendiente" : status === "archived" ? "Archivada" : "Publicada";
 
                 return (
                   <article className={editingId === question.id ? "bank-row selected" : "bank-row"} key={question.id}>
                     <span className="bank-row-level">
                       <span className={`difficulty ${question.difficulty}`}>{difficultyLabels[question.difficulty]}</span>
+                      <span className={`status-badge ${status}`}>{statusLabel}</span>
                     </span>
                     <span className="bank-row-question">
                       <b>{question.stem}</b>
@@ -271,6 +311,33 @@ function TeacherBank({
                       <button className="secondary" onClick={() => handleEditQuestion(question)} type="button">
                         Editar
                       </button>
+                      {status !== "published" && (
+                        <button
+                          className="ghost compact"
+                          onClick={() => changeQuestionStatus(question.id, "published")}
+                          type="button"
+                        >
+                          Publicar
+                        </button>
+                      )}
+                      {status === "published" && (
+                        <button
+                          className="ghost compact"
+                          onClick={() => changeQuestionStatus(question.id, "archived")}
+                          type="button"
+                        >
+                          Archivar
+                        </button>
+                      )}
+                      {status === "archived" && (
+                        <button
+                          className="ghost compact"
+                          onClick={() => changeQuestionStatus(question.id, "draft")}
+                          type="button"
+                        >
+                          Volver a pendiente
+                        </button>
+                      )}
                       <button
                         className="ghost compact"
                         onClick={() => setExpandedQuestionId((current) => (current === question.id ? null : question.id))}
@@ -281,7 +348,6 @@ function TeacherBank({
                     </span>
                     {isExpanded && (
                       <div className="bank-row-detail">
-                        <QuestionImage className="question-image bank-question-image" value={question.imageUrl} />
                         <p>
                           <b>Pregunta:</b> {question.stem}
                         </p>
