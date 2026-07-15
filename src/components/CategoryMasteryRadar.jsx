@@ -15,24 +15,19 @@ function getRadarPoint(center, radius, angle) {
   };
 }
 
-function getShortCategoryLabel(category) {
-  return category
-    .replace("Patología ", "")
-    .replace("Lesión celular y muerte", "Lesión celular")
-    .replace("Inflamación y reparación", "Inflamación")
-    .replace("Trastornos hemodinámicos", "Hemodinámica")
-    .replace("digestiva y hepatobiliar", "digestiva")
-    .replace("ginecológica y mama", "ginecológica")
-    .replace("infecciosa e inmunitaria", "infecciosa");
+function getShortCategoryLabel(category, maxLength = 13) {
+  const short = category.replace(/^Patología\s+/i, "");
+  if (short.length <= maxLength) return short;
+  return `${short.slice(0, maxLength - 1).trimEnd()}…`;
 }
 
 function CategoryMasteryRadar({ activeCategory, items, onActiveCategoryChange, size = "compact" }) {
   const isLarge = size === "large";
   const chartItems = getRadarItems(items, isLarge ? 12 : 8);
-  const center = isLarge ? 260 : 132;
+  const center = isLarge ? 320 : 132;
   const maxRadius = isLarge ? 168 : 82;
-  const labelRadius = isLarge ? 224 : 0;
-  const viewBoxSize = isLarge ? 520 : 264;
+  const labelRadius = isLarge ? 216 : 0;
+  const viewBoxSize = isLarge ? 640 : 264;
   const pointCount = Math.max(chartItems.length, 3);
   const polygonPoints = chartItems
     .map((item, index) => {
@@ -45,7 +40,7 @@ function CategoryMasteryRadar({ activeCategory, items, onActiveCategoryChange, s
   const gridLevels = [0.33, 0.66, 1];
   const hasAnswers = chartItems.some((item) => item.attempts > 0);
   const canDrawPolygon = hasAnswers && chartItems.length >= 3;
-  const activeItem = chartItems.find((item) => item.category === activeCategory) || chartItems.find((item) => item.attempts > 0);
+  const activeItem = activeCategory ? chartItems.find((item) => item.category === activeCategory) : null;
   const activeIndex = activeItem ? chartItems.findIndex((item) => item.category === activeItem.category) : -1;
   const activeAngle = activeIndex >= 0 ? -Math.PI / 2 + (activeIndex * 2 * Math.PI) / pointCount : 0;
   const activePoint =
@@ -103,6 +98,7 @@ function CategoryMasteryRadar({ activeCategory, items, onActiveCategoryChange, s
               key={`dot-${item.category}`}
               onClick={() => onActiveCategoryChange?.(item)}
               onFocus={() => onActiveCategoryChange?.(item)}
+              onBlur={() => onActiveCategoryChange?.(null)}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
                   event.preventDefault();
@@ -110,6 +106,7 @@ function CategoryMasteryRadar({ activeCategory, items, onActiveCategoryChange, s
                 }
               }}
               onMouseEnter={() => onActiveCategoryChange?.(item)}
+              onMouseLeave={() => onActiveCategoryChange?.(null)}
               role="button"
               tabIndex={0}
             >

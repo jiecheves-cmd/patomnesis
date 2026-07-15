@@ -1,9 +1,8 @@
-import React, { useMemo, useState } from "react";
-import CategoryMasteryRadar, { getRadarItems } from "./CategoryMasteryRadar.jsx";
+import React, { useState } from "react";
+import CategoryMasteryRadar from "./CategoryMasteryRadar.jsx";
 
 function MasteryDialog({ items, onClose }) {
-  const chartItems = useMemo(() => getRadarItems(items, 12), [items]);
-  const [activeItem, setActiveItem] = useState(() => chartItems.find((item) => item.attempts > 0) || chartItems[0]);
+  const [activeItem, setActiveItem] = useState(null);
 
   return (
     <div className="profile-overlay" role="presentation">
