@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from "react";
 import { difficultyLabels, questionThemes } from "../data/questions.js";
-import { normalizeText } from "../lib/importQuestions.js";
+import { exportQuestionsToXlsx, normalizeText } from "../lib/importQuestions.js";
 import TeacherStats from "./TeacherStats.jsx";
 
 function TeacherBank({
@@ -25,6 +25,7 @@ function TeacherBank({
   const [expandedQuestionId, setExpandedQuestionId] = useState(null);
   const [editorVisible, setEditorVisible] = useState(Boolean(editingId));
   const [teacherTab, setTeacherTab] = useState("questions");
+  const [exportStatus, setExportStatus] = useState("");
 
   const statusCounts = useMemo(() => {
     const counts = { draft: 0, published: 0, archived: 0 };
@@ -85,6 +86,19 @@ function TeacherBank({
     setTeacherTab("questions");
   }
 
+  async function handleExport() {
+    if (!filteredBankQuestions.length) return;
+    setExportStatus("Generando archivo...");
+
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      await exportQuestionsToXlsx(filteredBankQuestions, `patomnesis-preguntas-${today}.xlsx`);
+      setExportStatus(`${filteredBankQuestions.length} preguntas exportadas.`);
+    } catch (error) {
+      setExportStatus("No se pudo generar el archivo de exportación.");
+    }
+  }
+
   function handleEditQuestion(question) {
     editQuestion(question);
     setEditorVisible(true);
@@ -138,8 +152,19 @@ function TeacherBank({
                 <strong>0 pendientes</strong>
               )}{" "}
               · <span>{filteredBankQuestions.length} visibles</span>
+              {exportStatus && <span className="export-status"> · {exportStatus}</span>}
             </p>
-            <button className="add-link" onClick={handleNewQuestion} type="button">+ Nueva</button>
+            <span className="teacher-bank-head-actions">
+              <button
+                className="ghost compact"
+                disabled={!filteredBankQuestions.length}
+                onClick={handleExport}
+                type="button"
+              >
+                Exportar {filteredBankQuestions.length} visibles
+              </button>
+              <button className="add-link" onClick={handleNewQuestion} type="button">+ Nueva</button>
+            </span>
           </div>
 
           <section className="question-filter-panel">

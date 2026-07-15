@@ -102,6 +102,43 @@ async function readQuestionRowsFromFile(file) {
   return utils.sheet_to_json(sheet, { defval: "" });
 }
 
+function getStatusLabel(status) {
+  if (status === "draft") return "Pendiente";
+  if (status === "archived") return "Archivada";
+  return "Publicada";
+}
+
+function buildExportRows(questions) {
+  return questions.map((question) => {
+    const correctOption = question.options.find((option) => option.isCorrect);
+    const distractors = question.options.filter((option) => !option.isCorrect);
+
+    return {
+      tema_principal: question.category,
+      tema: question.topic || "",
+      dificultad: question.difficulty,
+      estado: getStatusLabel(question.status),
+      enunciado: question.stem,
+      imagen: question.imageUrl || "",
+      respuesta_correcta: correctOption?.text || "",
+      distractor_1: distractors[0]?.text || "",
+      distractor_2: distractors[1]?.text || "",
+      distractor_3: distractors[2]?.text || "",
+      explicacion: question.explanation || "",
+      idea_clave: question.keyPoint || ""
+    };
+  });
+}
+
+async function exportQuestionsToXlsx(questions, filename = "preguntas-patomnesis.xlsx") {
+  const { utils, writeFile } = await import("xlsx");
+  const rows = buildExportRows(questions);
+  const sheet = utils.json_to_sheet(rows);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, sheet, "Preguntas");
+  writeFile(workbook, filename);
+}
+
 export {
   difficultyAliases,
   importColumnAliases,
@@ -111,5 +148,7 @@ export {
   normalizeDifficulty,
   normalizeTheme,
   buildImportedQuestions,
+  buildExportRows,
+  exportQuestionsToXlsx,
   readQuestionRowsFromFile
 };

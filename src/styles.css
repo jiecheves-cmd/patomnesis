@@ -2325,3 +2325,14 @@ th {
   flex-wrap: wrap;
   gap: 8px;
 }
+.teacher-bank-head-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.export-status {
+  color: var(--muted);
+  font-weight: 700;
+}
