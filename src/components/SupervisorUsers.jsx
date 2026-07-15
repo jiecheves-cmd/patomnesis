@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { roleLabels } from "../data/questions.js";
 import { managedRoleOptions } from "../lib/quizEngine.js";
 
-function SupervisorUsers({ currentUser, onCreateUser, onDeleteUser, onRoleChange, profiles, roleUpdatingId, status }) {
+function SupervisorUsers({ currentUser, onCreateUser, onDeleteUser, onResetHistory, onRoleChange, profiles, roleUpdatingId, status }) {
   const [newUser, setNewUser] = useState({
     email: "",
     fullName: "",
@@ -155,14 +155,24 @@ function SupervisorUsers({ currentUser, onCreateUser, onDeleteUser, onRoleChange
                       </td>
                       <td>{profile.created_at ? new Date(profile.created_at).toLocaleDateString("es-ES") : "-"}</td>
                       <td>
-                        <button
-                          className="danger compact"
-                          disabled={isCurrentUser || roleUpdatingId === profile.id}
-                          onClick={() => onDeleteUser(profile)}
-                          type="button"
-                        >
-                          Eliminar
-                        </button>
+                        <span className="user-row-actions">
+                          <button
+                            className="secondary compact"
+                            disabled={roleUpdatingId === profile.id}
+                            onClick={() => onResetHistory(profile)}
+                            type="button"
+                          >
+                            Reiniciar historial
+                          </button>
+                          <button
+                            className="danger compact"
+                            disabled={isCurrentUser || roleUpdatingId === profile.id}
+                            onClick={() => onDeleteUser(profile)}
+                            type="button"
+                          >
+                            Eliminar
+                          </button>
+                        </span>
                       </td>
                     </tr>
                   );

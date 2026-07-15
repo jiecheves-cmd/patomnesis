@@ -2320,3 +2320,8 @@ th {
   color: var(--warn);
 }
 
+.user-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

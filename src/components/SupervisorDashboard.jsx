@@ -4,6 +4,7 @@ import {
   createManagedUser,
   deleteManagedUser,
   fetchProfiles,
+  resetUserHistory,
   updateProfileRole
 } from "../lib/supabase.js";
 import { describeSupabaseError } from "../lib/quizEngine.js";
@@ -163,6 +164,26 @@ function SupervisorDashboard({ answers, currentUser, questions }) {
     }
   }
 
+  async function resetHistory(profile) {
+    const label = profile.full_name || profile.email;
+    const confirmed = window.confirm(
+      `¿Reiniciar el historial de ${label}? Se borrarán todas sus respuestas, su PatoXP, racha y nivel. No se puede deshacer.`
+    );
+    if (!confirmed) return;
+
+    setRoleUpdatingId(profile.id);
+    setProfilesStatus("Reiniciando historial...");
+
+    try {
+      await resetUserHistory(profile.id);
+      setProfilesStatus(`Historial de ${label} reiniciado.`);
+    } catch (error) {
+      setProfilesStatus(`No se pudo reiniciar el historial: ${describeSupabaseError(error)}`);
+    } finally {
+      setRoleUpdatingId("");
+    }
+  }
+
   return (
     <section className="supervisor-dashboard">
       <div className="section-heading">
@@ -194,6 +215,7 @@ function SupervisorDashboard({ answers, currentUser, questions }) {
           currentUser={currentUser}
           onCreateUser={createUser}
           onDeleteUser={deleteUser}
+          onResetHistory={resetHistory}
           onRoleChange={changeUserRole}
           profiles={profiles}
           roleUpdatingId={roleUpdatingId}

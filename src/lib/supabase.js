@@ -326,6 +326,20 @@ export async function deleteManagedUser(userId) {
   return data;
 }
 
+export async function resetUserHistory(userId) {
+  if (!supabase || !userId) return null;
+
+  const { data, error } = await supabase.functions.invoke("admin-users", {
+    body: {
+      action: "reset_history",
+      userId
+    }
+  });
+
+  if (error) throw error;
+  return data;
+}
+
 export async function fetchAllQuestions() {
   if (!supabase) return [];
 

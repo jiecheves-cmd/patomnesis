@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 type AdminUserPayload = {
-  action?: "create" | "delete";
+  action?: "create" | "delete" | "reset_history";
   email?: string;
   fullName?: string;
   password?: string;
@@ -123,6 +123,23 @@ Deno.serve(async (request) => {
       }
 
       return jsonResponse({ deletedUserId: payload.userId });
+    }
+
+    if (payload.action === "reset_history") {
+      if (!payload.userId) {
+        return jsonResponse({ error: "Falta el usuario cuyo historial se va a reiniciar." }, 400);
+      }
+
+      const { error: resetError, count } = await admin
+        .from("quiz_attempts")
+        .delete({ count: "exact" })
+        .eq("student_id", payload.userId);
+
+      if (resetError) {
+        return jsonResponse({ error: resetError.message }, 400);
+      }
+
+      return jsonResponse({ resetUserId: payload.userId, deletedAttempts: count ?? 0 });
     }
 
     return jsonResponse({ error: "Acción no reconocida." }, 400);
