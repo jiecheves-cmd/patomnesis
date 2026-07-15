@@ -1410,25 +1410,25 @@ button.ghost {
 }
 
 .answer.correct {
-  border-color: rgba(126, 34, 206, 0.48);
-  background: #fff4d6;
-  color: var(--good);
+  border-color: rgba(21, 128, 61, 0.45);
+  background: #dcfce7;
+  color: #15803d;
 }
 
 .answer.correct .answer-letter {
-  background: rgba(245, 158, 11, 0.18);
-  color: var(--good);
+  background: rgba(21, 128, 61, 0.16);
+  color: #15803d;
 }
 
 .answer.wrong {
-  border-color: rgba(190, 52, 85, 0.45);
-  background: #ffe4e9;
-  color: var(--bad);
+  border-color: rgba(185, 28, 28, 0.45);
+  background: #fee2e2;
+  color: #b91c1c;
 }
 
 .answer.wrong .answer-letter {
-  background: rgba(190, 52, 85, 0.12);
-  color: var(--bad);
+  background: rgba(185, 28, 28, 0.14);
+  color: #b91c1c;
 }
 
 .feedback {
