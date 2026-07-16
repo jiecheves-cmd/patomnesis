@@ -178,5 +178,6 @@ export {
   calculatePatoXp,
   calculateStreak,
   getAnswerXp,
-  getLevelProgress
+  getLevelProgress,
+  getLocalDateKey
 };

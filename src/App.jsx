@@ -33,7 +33,7 @@ import {
   roleAccess,
   selectSmartQuestions
 } from "./lib/quizEngine.js";
-import { buildProgressSummary } from "./lib/progressSystem.js";
+import { buildProgressSummary, getLocalDateKey } from "./lib/progressSystem.js";
 import { buildImportedQuestions, readQuestionRowsFromFile } from "./lib/importQuestions.js";
 import {
   LoginScreen,
@@ -185,7 +185,11 @@ function App() {
   const studentStats = useMemo(() => {
     const correct = currentUserAnswerHistory.filter((answer) => answer.isCorrect).length;
     const precision = currentUserAnswerHistory.length ? Math.round((correct / currentUserAnswerHistory.length) * 100) : 0;
-    return { correct, precision, answered: currentUserAnswerHistory.length };
+    const todayKey = getLocalDateKey(new Date().toISOString());
+    const answeredToday = currentUserAnswerHistory.filter(
+      (answer) => getLocalDateKey(answer.answeredAt) === todayKey
+    ).length;
+    return { answeredToday, correct, precision, answered: currentUserAnswerHistory.length };
   }, [currentUserAnswerHistory]);
 
   const progressSummary = useMemo(

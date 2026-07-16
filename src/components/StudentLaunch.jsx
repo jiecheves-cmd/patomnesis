@@ -28,7 +28,7 @@ function StudentLaunch({
   const focusTopics = smartSession.weakTopics.length
     ? smartSession.weakTopics
     : categories.slice(0, 3);
-  const dailyProgress = Math.min(stats.answered, 20);
+  const dailyProgress = Math.min(stats.answeredToday, 20);
   const allTopicsSelected = selectedCategories.length === 0;
   const rankingLabel = progress.rankingPosition ? `#${progress.rankingPosition}` : "-";
   const streakLabel =
