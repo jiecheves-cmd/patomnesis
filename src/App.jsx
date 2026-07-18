@@ -361,6 +361,18 @@ function App() {
       setSupabaseStatus("Supabase conectado · sesión iniciada");
       setAnswerHistory(await loadAnswerHistoryForProfile(auth.profile));
       try {
+        const remoteQuestions = await fetchAllQuestions();
+        if (remoteQuestions.length) {
+          setQuestions(remoteQuestions);
+          const playableRemoteQuestions = remoteQuestions.filter(isPlayableQuestion);
+          if (playableRemoteQuestions.length) {
+            setDeck(prepareDeck(playableRemoteQuestions, 6));
+          }
+        }
+      } catch (error) {
+        console.warn("No se pudieron recargar las preguntas tras iniciar sesión", error);
+      }
+      try {
         setGlobalLeaderboard(await fetchGlobalLeaderboard());
       } catch (error) {
         console.warn("No se pudo cargar el ranking global", error);
