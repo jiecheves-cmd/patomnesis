@@ -36,6 +36,13 @@ function TeacherBank({
     return counts;
   }, [questions]);
 
+  const allThemes = useMemo(() => {
+    const extraThemes = Array.from(new Set(questions.map((question) => question.category))).filter(
+      (category) => category && !questionThemes.includes(category)
+    );
+    return [...questionThemes, ...extraThemes.sort()];
+  }, [questions]);
+
   const themeCounts = useMemo(() => {
     const counts = {};
     questions.forEach((question) => {
@@ -197,7 +204,7 @@ function TeacherBank({
               <strong>Tema:</strong>
               <select value={bankTheme} onChange={(event) => setBankTheme(event.target.value)}>
                 <option value="Todos">Todos los temas ({questions.length})</option>
-                {questionThemes.map((theme) => (
+                {allThemes.map((theme) => (
                   <option key={theme} value={theme}>
                     {theme} ({themeCounts[theme] || 0})
                   </option>
