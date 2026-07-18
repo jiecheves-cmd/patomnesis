@@ -245,25 +245,29 @@ function App() {
         clearStoredActivity();
       }
 
-      const results = await Promise.allSettled([
-        fetchAllQuestions(),
-        getCurrentProfileSession()
-      ]);
+      let auth = { profile: null, user: null };
+      let authError = null;
+      try {
+        auth = await getCurrentProfileSession();
+      } catch (error) {
+        authError = error;
+        console.warn("No se pudo leer la sesión de Supabase", error);
+      }
 
       if (cancelled) return;
 
-      const [questionsResult, authResult] = results;
-      const remoteQuestions = questionsResult.status === "fulfilled" ? questionsResult.value : [];
+      let remoteQuestions = [];
+      let questionsError = null;
+      try {
+        remoteQuestions = await fetchAllQuestions();
+      } catch (error) {
+        questionsError = error;
+        console.warn("No se pudieron leer preguntas de Supabase", error);
+      }
+
+      if (cancelled) return;
+
       const playableRemoteQuestions = remoteQuestions.filter(isPlayableQuestion);
-      const auth = authResult.status === "fulfilled" ? authResult.value : { profile: null, user: null };
-
-      if (questionsResult.status === "rejected") {
-        console.warn("No se pudieron leer preguntas de Supabase", questionsResult.reason);
-      }
-
-      if (authResult.status === "rejected") {
-        console.warn("No se pudo leer la sesión de Supabase", authResult.reason);
-      }
 
       if (remoteQuestions.length) {
         setQuestions(remoteQuestions);
@@ -290,7 +294,7 @@ function App() {
         }
       }
 
-      if (auth.user && questionsResult.status === "fulfilled") {
+      if (auth.user && !questionsError) {
         setSupabaseStatus(
           remoteQuestions.length
             ? `Supabase conectado · ${remoteQuestions.length} preguntas`
@@ -301,12 +305,12 @@ function App() {
       }
 
       if (auth.user) {
-        setSupabaseStatus(`Sesión iniciada · preguntas: ${describeSupabaseError(questionsResult.reason)}`);
+        setSupabaseStatus(`Sesión iniciada · preguntas: ${describeSupabaseError(questionsError)}`);
         setAuthLoading(false);
         return;
       }
 
-      if (questionsResult.status === "fulfilled") {
+      if (!questionsError) {
         setSupabaseStatus(
           remoteQuestions.length
             ? `Supabase listo · ${remoteQuestions.length} preguntas`
@@ -317,7 +321,7 @@ function App() {
       }
 
       setSupabaseStatus(
-        `Supabase no disponible · ${describeSupabaseError(authResult.reason || questionsResult.reason)}`
+        `Supabase no disponible · ${describeSupabaseError(authError || questionsError)}`
       );
       setAuthLoading(false);
     }
