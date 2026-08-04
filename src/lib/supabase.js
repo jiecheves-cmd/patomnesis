@@ -217,6 +217,22 @@ export async function fetchGlobalLeaderboard() {
   return data || [];
 }
 
+export async function fetchWeeklyLeaderboard() {
+  if (!supabase) return [];
+
+  const { data, error } = await supabase.rpc("get_weekly_leaderboard");
+  if (error) throw error;
+  return data || [];
+}
+
+export async function fetchWeeklyLeagueHistory(weeksBack = 20) {
+  if (!supabase) return [];
+
+  const { data, error } = await supabase.rpc("get_weekly_league_history", { weeks_back: weeksBack });
+  if (error) throw error;
+  return data || [];
+}
+
 export async function signOutUser() {
   if (!supabase) return;
 

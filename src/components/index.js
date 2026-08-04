@@ -10,5 +10,7 @@ export { default as SupervisorDashboard } from "./SupervisorDashboard.jsx";
 export { default as SupervisorUsers } from "./SupervisorUsers.jsx";
 export { default as StudentInsightsDialog } from "./StudentInsightsDialog.jsx";
 export { default as ProgressEvolutionChart } from "./ProgressEvolutionChart.jsx";
+export { default as LeagueBoard } from "./LeagueBoard.jsx";
+export { default as HallOfFame } from "./HallOfFame.jsx";
 export { default as Metric } from "./Metric.jsx";
 export { default as QuestionImage } from "./QuestionImage.jsx";

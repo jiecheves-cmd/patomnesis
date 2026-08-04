@@ -8,6 +8,8 @@ import {
   fetchGlobalLeaderboard,
   fetchOwnAnswerHistory,
   fetchAllQuestions,
+  fetchWeeklyLeaderboard,
+  fetchWeeklyLeagueHistory,
   finishQuizAttempt,
   getCurrentProfileSession,
   isSupabaseConfigured,
@@ -41,7 +43,9 @@ import {
   StudentLaunch,
   QuizPlayer,
   TeacherBank,
-  SupervisorDashboard
+  SupervisorDashboard,
+  LeagueBoard,
+  HallOfFame
 } from "./components/index.js";
 
 const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
@@ -116,6 +120,11 @@ function App() {
   const [answers, setAnswers] = useState([]);
   const [answerHistory, setAnswerHistory] = useState([]);
   const [globalLeaderboard, setGlobalLeaderboard] = useState([]);
+  const [studentSection, setStudentSection] = useState("inicio");
+  const [weeklyLeaderboard, setWeeklyLeaderboard] = useState([]);
+  const [weeklyLeaderboardStatus, setWeeklyLeaderboardStatus] = useState("Cargando clasificación...");
+  const [weeklyLeagueHistory, setWeeklyLeagueHistory] = useState([]);
+  const [weeklyHistoryStatus, setWeeklyHistoryStatus] = useState("Cargando historial...");
   const [activeAttemptId, setActiveAttemptId] = useState(null);
   const [attemptFinished, setAttemptFinished] = useState(false);
   const [editorQuestion, setEditorQuestion] = useState(() => cloneQuestion(emptyQuestion));
@@ -222,9 +231,42 @@ function App() {
     return fetchOwnAnswerHistory();
   }
 
+  async function refreshLeagueBoard() {
+    setWeeklyLeaderboardStatus("Actualizando clasificación...");
+    try {
+      const rows = await fetchWeeklyLeaderboard();
+      setWeeklyLeaderboard(rows);
+      setWeeklyLeaderboardStatus(
+        rows.some((row) => row.total_answers > 0)
+          ? "Clasificación actualizada."
+          : "Todavía nadie ha respondido preguntas esta semana."
+      );
+    } catch (error) {
+      setWeeklyLeaderboardStatus(`No se pudo cargar la liga: ${describeSupabaseError(error)}`);
+    }
+  }
+
+  async function refreshHallOfFame() {
+    setWeeklyHistoryStatus("Actualizando historial...");
+    try {
+      const rows = await fetchWeeklyLeagueHistory(20);
+      setWeeklyLeagueHistory(rows);
+      setWeeklyHistoryStatus(rows.length ? "Historial actualizado." : "Todavía no hay semanas completas con actividad.");
+    } catch (error) {
+      setWeeklyHistoryStatus(`No se pudo cargar el historial: ${describeSupabaseError(error)}`);
+    }
+  }
+
   useEffect(() => {
     storeQuestionsLocally(questions);
   }, [questions]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabaseUser) return;
+    if (studentSection === "liga") refreshLeagueBoard();
+    if (studentSection === "hall") refreshHallOfFame();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [studentSection]);
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
@@ -289,6 +331,8 @@ function App() {
               console.warn("No se pudo cargar el ranking global", error);
               setGlobalLeaderboard([]);
             });
+          refreshLeagueBoard();
+          refreshHallOfFame();
         } catch (error) {
           console.warn("No se pudo cargar el historial de respuestas", error);
         }
@@ -382,6 +426,8 @@ function App() {
         console.warn("No se pudo cargar el ranking global", error);
         setGlobalLeaderboard([]);
       }
+      refreshLeagueBoard();
+      refreshHallOfFame();
     } catch (error) {
       setAuthError(describeSupabaseError(error));
     } finally {
@@ -404,6 +450,9 @@ function App() {
       setSupabaseProfile(null);
       setAnswerHistory([]);
       setGlobalLeaderboard([]);
+      setWeeklyLeaderboard([]);
+      setWeeklyLeagueHistory([]);
+      setStudentSection("inicio");
       setRole("student");
       setShowQuiz(false);
       setActiveAttemptId(null);
@@ -765,11 +814,27 @@ function App() {
 
         {role === "student" && (
           <nav className="section-tabs" aria-label="Secciones">
-            <button className="active" type="button">
+            <button
+              className={studentSection === "inicio" ? "active" : ""}
+              onClick={() => setStudentSection("inicio")}
+              type="button"
+            >
               Inicio
             </button>
-            <button type="button">Liga</button>
-            <button type="button">Hall of Fame</button>
+            <button
+              className={studentSection === "liga" ? "active" : ""}
+              onClick={() => setStudentSection("liga")}
+              type="button"
+            >
+              Liga
+            </button>
+            <button
+              className={studentSection === "hall" ? "active" : ""}
+              onClick={() => setStudentSection("hall")}
+              type="button"
+            >
+              Hall of Fame
+            </button>
           </nav>
         )}
       </header>
@@ -802,6 +867,20 @@ function App() {
               quizMode={quizMode}
               selectedOptionId={selectedOptionId}
               stats={stats}
+            />
+          ) : studentSection === "liga" ? (
+            <LeagueBoard
+              currentUser={currentUser}
+              onRefresh={refreshLeagueBoard}
+              rows={weeklyLeaderboard}
+              status={weeklyLeaderboardStatus}
+            />
+          ) : studentSection === "hall" ? (
+            <HallOfFame
+              currentUser={currentUser}
+              onRefresh={refreshHallOfFame}
+              rows={weeklyLeagueHistory}
+              status={weeklyHistoryStatus}
             />
           ) : (
             <StudentLaunch

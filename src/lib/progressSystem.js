@@ -229,13 +229,38 @@ function buildWeeklyProgress(history, { weeks = 8 } = {}) {
   return series.slice(-weeks);
 }
 
+function getCurrentWeekRange(now = new Date()) {
+  const todayKey = getLocalDateKey(now.toISOString());
+  const weekStartKey = getWeekStartKey(todayKey);
+  const weekEndKey = shiftDateKey(weekStartKey, 6);
+  const nextMondayKey = shiftDateKey(weekStartKey, 7);
+
+  const [ny, nm, nd] = nextMondayKey.split("-").map(Number);
+  const nextMonday = new Date(ny, nm - 1, nd);
+  const msRemaining = Math.max(0, nextMonday.getTime() - now.getTime());
+  const daysRemaining = Math.ceil(msRemaining / (24 * 60 * 60 * 1000));
+
+  return {
+    startLabel: formatWeekLabel(weekStartKey),
+    endLabel: formatWeekLabel(weekEndKey),
+    daysRemaining
+  };
+}
+
+function formatWeekRangeLabel(weekStartKey) {
+  const weekEndKey = shiftDateKey(weekStartKey, 6);
+  return `${formatWeekLabel(weekStartKey)} - ${formatWeekLabel(weekEndKey)}`;
+}
+
 export {
   PATO_LEVELS,
   buildProgressSummary,
   buildWeeklyProgress,
   calculatePatoXp,
   calculateStreak,
+  formatWeekRangeLabel,
   getAnswerXp,
+  getCurrentWeekRange,
   getLevelProgress,
   getLocalDateKey
 };

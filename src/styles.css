@@ -2423,3 +2423,98 @@ th {
   color: var(--muted);
   font-weight: 700;
 }
+
+.league-board,
+.hall-of-fame {
+  display: grid;
+  gap: 16px;
+}
+
+.league-panel,
+.hall-of-fame-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.league-rows,
+.hall-of-fame-rows {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.league-row,
+.hall-of-fame-row {
+  display: grid;
+  grid-template-columns: 32px 1fr auto auto;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fffefc;
+}
+
+.hall-of-fame-row {
+  grid-template-columns: 120px 1fr auto auto;
+}
+
+.league-row.self,
+.hall-of-fame-row.self {
+  border-color: rgba(126, 34, 206, 0.35);
+  background: var(--brand-soft);
+}
+
+.league-position {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #f3ede7;
+  color: var(--muted);
+  font-weight: 900;
+  font-size: 0.82rem;
+}
+
+.league-position.rank-1 {
+  background: linear-gradient(135deg, #f7d774, #f59e0b);
+  color: #4c1d95;
+}
+
+.league-position.rank-2 {
+  background: linear-gradient(135deg, #e4e4ec, #b8b8c8);
+  color: #232036;
+}
+
+.league-position.rank-3 {
+  background: linear-gradient(135deg, #e7b98c, #c07a3f);
+  color: #fff;
+}
+
+.league-stat {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 760;
+  white-space: nowrap;
+}
+
+.league-xp {
+  color: var(--brand-dark);
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.hall-of-fame-week {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.trophy-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
