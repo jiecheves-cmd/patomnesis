@@ -172,9 +172,67 @@ function buildProgressSummary({ allHistory, currentUser, ownHistory, questions, 
   };
 }
 
+function getWeekStartKey(value) {
+  const dateKey = getLocalDateKey(value);
+  if (!dateKey) return "";
+
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  const isoDayOfWeek = (date.getDay() + 6) % 7; // 0 = lunes
+  date.setDate(date.getDate() - isoDayOfWeek);
+  return getLocalDateKey(date.toISOString());
+}
+
+function formatWeekLabel(weekStartKey) {
+  const [, month, day] = weekStartKey.split("-");
+  return `${day}/${month}`;
+}
+
+function buildWeeklyProgress(history, { weeks = 8 } = {}) {
+  if (!history.length) return [];
+
+  const sorted = [...history].sort((a, b) => Date.parse(a.answeredAt || 0) - Date.parse(b.answeredAt || 0));
+  const firstWeekStart = getWeekStartKey(sorted[0].answeredAt);
+  const lastWeekStart = getWeekStartKey(new Date().toISOString());
+
+  if (!firstWeekStart || !lastWeekStart) return [];
+
+  const buckets = new Map();
+  let cursor = firstWeekStart;
+  while (cursor && cursor <= lastWeekStart) {
+    buckets.set(cursor, { weekStart: cursor, answered: 0, correct: 0, patoXp: 0 });
+    cursor = shiftDateKey(cursor, 7);
+  }
+
+  history.forEach((answer) => {
+    const weekStart = getWeekStartKey(answer.answeredAt);
+    const bucket = buckets.get(weekStart);
+    if (!bucket) return;
+    bucket.answered += 1;
+    if (answer.isCorrect) bucket.correct += 1;
+    bucket.patoXp += getAnswerXp(answer);
+  });
+
+  const series = Array.from(buckets.values()).map((bucket) => ({
+    ...bucket,
+    label: formatWeekLabel(bucket.weekStart),
+    accuracy: bucket.answered ? Math.round((bucket.correct / bucket.answered) * 100) : null,
+    patoXp: roundXp(Math.max(0, bucket.patoXp))
+  }));
+
+  let cumulativeXp = 0;
+  series.forEach((week) => {
+    cumulativeXp = roundXp(cumulativeXp + week.patoXp);
+    week.cumulativePatoXp = cumulativeXp;
+  });
+
+  return series.slice(-weeks);
+}
+
 export {
   PATO_LEVELS,
   buildProgressSummary,
+  buildWeeklyProgress,
   calculatePatoXp,
   calculateStreak,
   getAnswerXp,

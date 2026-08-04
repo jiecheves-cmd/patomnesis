@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { roleLabels } from "../data/questions.js";
 import { managedRoleOptions } from "../lib/quizEngine.js";
 
-function SupervisorUsers({ currentUser, onCreateUser, onDeleteUser, onResetHistory, onRoleChange, profiles, roleUpdatingId, status }) {
+function SupervisorUsers({ currentUser, onCreateUser, onDeleteUser, onResetHistory, onRoleChange, onViewProgress, profiles, roleUpdatingId, status }) {
   const [newUser, setNewUser] = useState({
     email: "",
     fullName: "",
@@ -156,6 +156,13 @@ function SupervisorUsers({ currentUser, onCreateUser, onDeleteUser, onResetHisto
                       <td>{profile.created_at ? new Date(profile.created_at).toLocaleDateString("es-ES") : "-"}</td>
                       <td>
                         <span className="user-row-actions">
+                          <button
+                            className="secondary compact"
+                            onClick={() => onViewProgress(profile)}
+                            type="button"
+                          >
+                            Ver progreso
+                          </button>
                           <button
                             className="secondary compact"
                             disabled={roleUpdatingId === profile.id}

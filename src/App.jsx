@@ -847,7 +847,12 @@ function App() {
       )}
 
       {role === "supervisor" && (
-        <SupervisorDashboard answers={answerHistory} currentUser={currentUser} questions={questions} />
+        <SupervisorDashboard
+          answers={answerHistory}
+          categories={categories}
+          currentUser={currentUser}
+          questions={questions}
+        />
       )}
     </main>
   );

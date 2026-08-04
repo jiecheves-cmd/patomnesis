@@ -9,13 +9,15 @@ import {
 } from "../lib/supabase.js";
 import { describeSupabaseError } from "../lib/quizEngine.js";
 import Metric from "./Metric.jsx";
+import StudentInsightsDialog from "./StudentInsightsDialog.jsx";
 import SupervisorUsers from "./SupervisorUsers.jsx";
 
-function SupervisorDashboard({ answers, currentUser, questions }) {
+function SupervisorDashboard({ answers, categories, currentUser, questions }) {
   const [supervisorTab, setSupervisorTab] = useState("stats");
   const [profiles, setProfiles] = useState([]);
   const [profilesStatus, setProfilesStatus] = useState("Cargando usuarios...");
   const [roleUpdatingId, setRoleUpdatingId] = useState("");
+  const [insightsProfile, setInsightsProfile] = useState(null);
 
   const topicRows = useMemo(() => {
     const grouped = new Map();
@@ -210,6 +212,16 @@ function SupervisorDashboard({ answers, currentUser, questions }) {
         </button>
       </nav>
 
+      {insightsProfile && (
+        <StudentInsightsDialog
+          allAnswers={answers}
+          categories={categories}
+          onClose={() => setInsightsProfile(null)}
+          profile={insightsProfile}
+          questions={questions}
+        />
+      )}
+
       {supervisorTab === "users" ? (
         <SupervisorUsers
           currentUser={currentUser}
@@ -217,6 +229,7 @@ function SupervisorDashboard({ answers, currentUser, questions }) {
           onDeleteUser={deleteUser}
           onResetHistory={resetHistory}
           onRoleChange={changeUserRole}
+          onViewProgress={setInsightsProfile}
           profiles={profiles}
           roleUpdatingId={roleUpdatingId}
           status={profilesStatus}

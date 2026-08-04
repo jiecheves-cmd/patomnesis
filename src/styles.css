@@ -1071,6 +1071,93 @@ button.ghost {
   color: var(--brand-dark);
 }
 
+.student-insights-dialog {
+  gap: 22px;
+}
+
+.student-insights-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.mastery-expanded-view.compact {
+  min-height: min(48vh, 480px);
+}
+
+.evolution-chart {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+
+.evolution-chart svg {
+  width: 100%;
+  max-width: 720px;
+  height: auto;
+}
+
+.evolution-grid {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.evolution-tick {
+  fill: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.evolution-label {
+  fill: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.evolution-bar {
+  fill: var(--fresh-soft);
+}
+
+.evolution-line {
+  fill: none;
+  stroke: var(--brand);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.evolution-dot {
+  fill: var(--brand);
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+
+.evolution-legend {
+  display: flex;
+  gap: 18px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 760;
+}
+
+.evolution-legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 3px;
+  vertical-align: middle;
+}
+
+.evolution-legend-dot.line {
+  background: var(--brand);
+  border-radius: 50%;
+}
+
+.evolution-legend-dot.bar {
+  background: var(--fresh-soft);
+  border: 1px solid var(--fresh);
+}
+
 .mastery-dialog {
   width: min(1360px, calc(100vw - 56px));
   max-width: none;
