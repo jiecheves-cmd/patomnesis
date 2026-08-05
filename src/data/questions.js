@@ -3,7 +3,7 @@ export const questionThemes = [
   "Patología cardiovascular",
   "Patología respiratoria",
   "Patología digestiva y hepatobiliar",
-  "Patología renal y urinaria",
+  "Uropatología",
   "Patología endocrina",
   "Patología ginecológica y mama",
   "Patología osteoarticular y tejidos blandos",
