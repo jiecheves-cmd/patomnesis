@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { resolveQuestionImageUrl } from "./questionImage.js";
+import { resolveQuestionImageUrl, resolveQuestionImageUrls } from "./questionImage.js";
 
 test("normaliza enlaces compartidos de Google Drive", () => {
   assert.equal(
@@ -26,4 +26,22 @@ test("convierte una ruta de Storage en una URL publica", () => {
 test("conserva URLs directas y rutas locales", () => {
   assert.equal(resolveQuestionImageUrl(" https://images.example.org/sample.png "), "https://images.example.org/sample.png");
   assert.equal(resolveQuestionImageUrl("/brand/patomnesis-icon.png"), "/brand/patomnesis-icon.png");
+});
+
+test("separa varias URLs por punto y coma y descarta vacías", () => {
+  assert.deepEqual(
+    resolveQuestionImageUrls(" https://images.example.org/a.png ; https://images.example.org/b.png ;; "),
+    ["https://images.example.org/a.png", "https://images.example.org/b.png"]
+  );
+});
+
+test("limita la galería a un máximo de 4 imágenes", () => {
+  const value = ["a", "b", "c", "d", "e"].map((letter) => `https://images.example.org/${letter}.png`).join(";");
+  assert.equal(resolveQuestionImageUrls(value).length, 4);
+});
+
+test("una sola URL sin separador se resuelve igual que antes", () => {
+  assert.deepEqual(resolveQuestionImageUrls("https://images.example.org/sample.png"), [
+    "https://images.example.org/sample.png"
+  ]);
 });

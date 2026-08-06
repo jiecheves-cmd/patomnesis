@@ -1,4 +1,5 @@
 const DEFAULT_IMAGE_BUCKET = "question-images";
+const MAX_QUESTION_IMAGES = 4;
 
 function getSupabaseUrl() {
   return import.meta.env?.VITE_SUPABASE_URL?.replace(/\/$/, "") || "";
@@ -50,4 +51,12 @@ function resolveQuestionImageUrl(value, supabaseUrl = getSupabaseUrl()) {
   return url.toString();
 }
 
-export { DEFAULT_IMAGE_BUCKET, resolveQuestionImageUrl };
+function resolveQuestionImageUrls(value, supabaseUrl = getSupabaseUrl()) {
+  return String(value || "")
+    .split(";")
+    .map((entry) => resolveQuestionImageUrl(entry, supabaseUrl))
+    .filter(Boolean)
+    .slice(0, MAX_QUESTION_IMAGES);
+}
+
+export { DEFAULT_IMAGE_BUCKET, MAX_QUESTION_IMAGES, resolveQuestionImageUrl, resolveQuestionImageUrls };

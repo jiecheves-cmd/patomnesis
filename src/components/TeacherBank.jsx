@@ -235,8 +235,9 @@ function TeacherBank({
                 Usa el botón <b>Importar Excel</b> para subir archivos .xlsx, .xls o .csv.
               </p>
               <p>
-                tema_principal, tema, dificultad, enunciado, imagen (URL, opcional), respuesta_correcta,
-                distractor_1, distractor_2, distractor_3, explicación, idea_clave.
+                tema_principal, tema, dificultad, enunciado, imagen (URL, opcional; hasta 4 separadas
+                por «;»), respuesta_correcta, distractor_1, distractor_2, distractor_3, explicación,
+                idea_clave.
               </p>
             </details>
             {importMessage && <p className="import-message">{importMessage}</p>}
@@ -299,8 +300,12 @@ function TeacherBank({
                   <textarea value={editorQuestion.stem} onChange={(event) => updateEditorField("stem", event.target.value)} />
                 </label>
                 <label className="wide">
-                  URL de imagen
-                  <input value={editorQuestion.imageUrl} onChange={(event) => updateEditorField("imageUrl", event.target.value)} />
+                  URL de imagen (hasta 4, separadas por «;»)
+                  <input
+                    onChange={(event) => updateEditorField("imageUrl", event.target.value)}
+                    placeholder="https://ejemplo.com/imagen1.jpg; https://ejemplo.com/imagen2.jpg"
+                    value={editorQuestion.imageUrl}
+                  />
                 </label>
                 {editorQuestion.options.map((option, index) => (
                   <label key={option.id}>
