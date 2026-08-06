@@ -235,8 +235,8 @@ function TeacherBank({
                 Usa el botón <b>Importar Excel</b> para subir archivos .xlsx, .xls o .csv.
               </p>
               <p>
-                tema_principal, tema, dificultad, enunciado, respuesta_correcta, distractor_1,
-                distractor_2, distractor_3, explicación, idea_clave.
+                tema_principal, tema, dificultad, enunciado, imagen (URL, opcional), respuesta_correcta,
+                distractor_1, distractor_2, distractor_3, explicación, idea_clave.
               </p>
             </details>
             {importMessage && <p className="import-message">{importMessage}</p>}
