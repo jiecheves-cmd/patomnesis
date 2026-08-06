@@ -1,11 +1,7 @@
 import React from "react";
 
-export function getRadarItems(items, limit = 8) {
-  const sortedItems = items
-    .filter((item) => item.questionCount > 0 || item.attempts > 0)
-    .sort((a, b) => Number(b.attempts > 0) - Number(a.attempts > 0) || b.attempts - a.attempts);
-
-  return sortedItems.slice(0, limit);
+export function getRadarItems(items, limit = 20) {
+  return items.filter((item) => item.questionCount > 0 || item.attempts > 0).slice(0, limit);
 }
 
 function getRadarPoint(center, radius, angle) {
@@ -23,7 +19,7 @@ function getShortCategoryLabel(category, maxLength = 13) {
 
 function CategoryMasteryRadar({ activeCategory, items, onActiveCategoryChange, size = "compact" }) {
   const isLarge = size === "large";
-  const chartItems = getRadarItems(items, isLarge ? 12 : 8);
+  const chartItems = getRadarItems(items);
   const center = isLarge ? 320 : 132;
   const maxRadius = isLarge ? 168 : 82;
   const labelRadius = isLarge ? 216 : 0;
@@ -140,7 +136,7 @@ function CategoryMasteryRadar({ activeCategory, items, onActiveCategoryChange, s
         {hasAnswers
           ? size === "large"
             ? "Selecciona un punto para ver el detalle."
-            : "Radar por categorías contestadas."
+            : "Todas las categorías del banco de preguntas."
           : "Contesta preguntas para empezar a dibujar tu dominio real."}
       </p>
     </div>
