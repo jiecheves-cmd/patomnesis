@@ -11,8 +11,9 @@ import { describeSupabaseError } from "../lib/quizEngine.js";
 import Metric from "./Metric.jsx";
 import StudentInsightsDialog from "./StudentInsightsDialog.jsx";
 import SupervisorUsers from "./SupervisorUsers.jsx";
+import DraftPreview from "./DraftPreview.jsx";
 
-function SupervisorDashboard({ answers, categories, currentUser, questions }) {
+function SupervisorDashboard({ answers, categories, changeQuestionStatus, currentUser, questions }) {
   const [supervisorTab, setSupervisorTab] = useState("stats");
   const [profiles, setProfiles] = useState([]);
   const [profilesStatus, setProfilesStatus] = useState("Cargando usuarios...");
@@ -191,7 +192,13 @@ function SupervisorDashboard({ answers, categories, currentUser, questions }) {
       <div className="section-heading">
         <div>
           <p className="eyebrow">Modo supervisor</p>
-          <h2>{supervisorTab === "stats" ? "Estadísticas de usuarios" : "Gestión de usuarios"}</h2>
+          <h2>
+            {supervisorTab === "stats"
+              ? "Estadísticas de usuarios"
+              : supervisorTab === "draft"
+              ? "Probar pendientes"
+              : "Gestión de usuarios"}
+          </h2>
         </div>
       </div>
 
@@ -209,6 +216,13 @@ function SupervisorDashboard({ answers, categories, currentUser, questions }) {
           type="button"
         >
           Usuarios
+        </button>
+        <button
+          className={supervisorTab === "draft" ? "active" : ""}
+          onClick={() => setSupervisorTab("draft")}
+          type="button"
+        >
+          Probar pendientes
         </button>
       </nav>
 
@@ -234,6 +248,8 @@ function SupervisorDashboard({ answers, categories, currentUser, questions }) {
           roleUpdatingId={roleUpdatingId}
           status={profilesStatus}
         />
+      ) : supervisorTab === "draft" ? (
+        <DraftPreview changeQuestionStatus={changeQuestionStatus} questions={questions} />
       ) : (
         <>
       <div className="stats-grid">

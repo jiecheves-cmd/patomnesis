@@ -8,6 +8,7 @@ export { default as TeacherBank } from "./TeacherBank.jsx";
 export { default as TeacherStats } from "./TeacherStats.jsx";
 export { default as SupervisorDashboard } from "./SupervisorDashboard.jsx";
 export { default as SupervisorUsers } from "./SupervisorUsers.jsx";
+export { default as DraftPreview } from "./DraftPreview.jsx";
 export { default as StudentInsightsDialog } from "./StudentInsightsDialog.jsx";
 export { default as ProgressEvolutionChart } from "./ProgressEvolutionChart.jsx";
 export { default as LeagueBoard } from "./LeagueBoard.jsx";

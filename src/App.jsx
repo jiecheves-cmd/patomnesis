@@ -929,6 +929,7 @@ function App() {
         <SupervisorDashboard
           answers={answerHistory}
           categories={categories}
+          changeQuestionStatus={changeQuestionStatus}
           currentUser={currentUser}
           questions={questions}
         />
