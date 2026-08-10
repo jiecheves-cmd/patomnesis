@@ -931,6 +931,7 @@ function App() {
           categories={categories}
           changeQuestionStatus={changeQuestionStatus}
           currentUser={currentUser}
+          onEditQuestion={editQuestion}
           questions={questions}
         />
       )}

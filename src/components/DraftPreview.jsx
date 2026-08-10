@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { difficultyLabels } from "../data/questions.js";
 import QuestionImage from "./QuestionImage.jsx";
 
-function DraftPreview({ changeQuestionStatus, questions }) {
+function DraftPreview({ changeQuestionStatus, onEditQuestion, questions }) {
   const draftQuestions = useMemo(() => questions.filter((question) => question.status === "draft"), [questions]);
 
   const [sessionQuestions, setSessionQuestions] = useState(null);
@@ -214,6 +214,11 @@ function DraftPreview({ changeQuestionStatus, questions }) {
               >
                 Archivar
               </button>
+              {onEditQuestion && (
+                <button className="secondary" onClick={() => onEditQuestion(currentQuestion)} type="button">
+                  Editar pregunta
+                </button>
+              )}
               {currentIndex < sessionQuestions.length - 1 ? (
                 <button className="secondary" onClick={() => goToQuestion(currentIndex + 1)} type="button">
                   Siguiente pregunta

@@ -13,7 +13,7 @@ import StudentInsightsDialog from "./StudentInsightsDialog.jsx";
 import SupervisorUsers from "./SupervisorUsers.jsx";
 import DraftPreview from "./DraftPreview.jsx";
 
-function SupervisorDashboard({ answers, categories, changeQuestionStatus, currentUser, questions }) {
+function SupervisorDashboard({ answers, categories, changeQuestionStatus, currentUser, onEditQuestion, questions }) {
   const [supervisorTab, setSupervisorTab] = useState("stats");
   const [profiles, setProfiles] = useState([]);
   const [profilesStatus, setProfilesStatus] = useState("Cargando usuarios...");
@@ -249,7 +249,7 @@ function SupervisorDashboard({ answers, categories, changeQuestionStatus, curren
           status={profilesStatus}
         />
       ) : supervisorTab === "draft" ? (
-        <DraftPreview changeQuestionStatus={changeQuestionStatus} questions={questions} />
+        <DraftPreview changeQuestionStatus={changeQuestionStatus} onEditQuestion={onEditQuestion} questions={questions} />
       ) : (
         <>
       <div className="stats-grid">
