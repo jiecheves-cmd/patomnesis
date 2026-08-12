@@ -13,7 +13,8 @@ export const questionThemes = [
   "Dermatopatología",
   "Neuropatología",
   "Patología infecciosa",
-  "Patología inmunitaria"
+  "Patología inmunitaria",
+  "Citopatología"
 ];
 
 export const seedQuestions = [
