@@ -1,5 +1,5 @@
 const DEFAULT_IMAGE_BUCKET = "question-images";
-const MAX_QUESTION_IMAGES = 4;
+const MAX_QUESTION_IMAGES = 5;
 
 function getSupabaseUrl() {
   return import.meta.env?.VITE_SUPABASE_URL?.replace(/\/$/, "") || "";

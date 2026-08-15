@@ -35,9 +35,9 @@ test("separa varias URLs por punto y coma y descarta vacías", () => {
   );
 });
 
-test("limita la galería a un máximo de 4 imágenes", () => {
-  const value = ["a", "b", "c", "d", "e"].map((letter) => `https://images.example.org/${letter}.png`).join(";");
-  assert.equal(resolveQuestionImageUrls(value).length, 4);
+test("limita la galería a un máximo de 5 imágenes", () => {
+  const value = ["a", "b", "c", "d", "e", "f"].map((letter) => `https://images.example.org/${letter}.png`).join(";");
+  assert.equal(resolveQuestionImageUrls(value).length, 5);
 });
 
 test("una sola URL sin separador se resuelve igual que antes", () => {
