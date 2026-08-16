@@ -36,6 +36,7 @@ import {
   selectSmartQuestions
 } from "./lib/quizEngine.js";
 import { buildProgressSummary, getLocalDateKey } from "./lib/progressSystem.js";
+import { evaluateBadges } from "./lib/badges.js";
 import { buildImportedQuestions, readQuestionRowsFromFile } from "./lib/importQuestions.js";
 import {
   LoginScreen,
@@ -45,7 +46,8 @@ import {
   TeacherBank,
   SupervisorDashboard,
   LeagueBoard,
-  HallOfFame
+  HallOfFame,
+  BadgesBoard
 } from "./components/index.js";
 
 const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
@@ -216,6 +218,17 @@ function App() {
   const categoryMastery = useMemo(
     () => buildCategoryMastery(currentUserAnswerHistory, questions, categories),
     [categories, currentUserAnswerHistory, questions]
+  );
+
+  const studentBadges = useMemo(
+    () =>
+      evaluateBadges({
+        categoryMastery,
+        history: currentUserAnswerHistory,
+        summary: progressSummary,
+        weeklyWins: weeklyLeagueHistory.filter((week) => week.profile_id === currentUser.id).length
+      }),
+    [categoryMastery, currentUser.id, currentUserAnswerHistory, progressSummary, weeklyLeagueHistory]
   );
 
   const smartSession = useMemo(
@@ -835,6 +848,13 @@ function App() {
             >
               Hall of Fame
             </button>
+            <button
+              className={`badges-nav-trigger ${studentSection === "medallas" ? "active" : ""}`}
+              onClick={() => setStudentSection("medallas")}
+              type="button"
+            >
+              🏅 Medallero
+            </button>
           </nav>
         )}
       </header>
@@ -882,6 +902,8 @@ function App() {
               rows={weeklyLeagueHistory}
               status={weeklyHistoryStatus}
             />
+          ) : studentSection === "medallas" ? (
+            <BadgesBoard badges={studentBadges} />
           ) : (
             <StudentLaunch
               categories={categories}
