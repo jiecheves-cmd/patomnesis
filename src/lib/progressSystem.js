@@ -262,5 +262,6 @@ export {
   getAnswerXp,
   getCurrentWeekRange,
   getLevelProgress,
-  getLocalDateKey
+  getLocalDateKey,
+  getWeekStartKey
 };

@@ -2646,3 +2646,129 @@ th {
   gap: 10px;
   margin-top: 10px;
 }
+
+.badges-board {
+  display: grid;
+  gap: 16px;
+}
+
+.badges-groups {
+  display: grid;
+  gap: 16px;
+}
+
+.badges-groups.compact {
+  gap: 12px;
+}
+
+.badges-group-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.badges-group-title {
+  margin: 0;
+  color: var(--brand-dark);
+  font-size: 1rem;
+}
+
+.badges-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.badge-card {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fffefc;
+  text-align: left;
+}
+
+.badge-card.earned {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: linear-gradient(160deg, #fff9ec, #fff4d6);
+}
+
+.badge-card.locked {
+  opacity: 0.68;
+  filter: grayscale(0.4);
+}
+
+.badge-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.badge-icon-img {
+  display: block;
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border-radius: 10px;
+}
+
+.badge-name {
+  color: var(--ink);
+  font-weight: 860;
+  font-size: 0.9rem;
+}
+
+.badge-description {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.badge-status.earned {
+  margin-top: 4px;
+  color: var(--warn);
+  font-weight: 860;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.badge-progress {
+  display: grid;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.badge-progress-track {
+  height: 6px;
+  border-radius: 999px;
+  background: #f0e9e0;
+  overflow: hidden;
+}
+
+.badge-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--fresh), var(--brand));
+  border-radius: 999px;
+}
+
+.badge-progress-label {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 760;
+}
+
+.section-tabs .badges-nav-trigger {
+  margin-left: auto;
+  background: linear-gradient(135deg, #fbbf24, #fb7185);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(251, 113, 133, 0.35);
+}
+
+.section-tabs .badges-nav-trigger:hover {
+  filter: brightness(1.05);
+}
+
+.section-tabs .badges-nav-trigger.active {
+  background: linear-gradient(135deg, #f59e0b, #e11d48);
+}
