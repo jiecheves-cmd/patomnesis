@@ -57,11 +57,10 @@ function BadgesBoard({ badges, compact = false, title = "Medallas" }) {
                     {badge.image ? <img alt="" className="badge-icon-img" src={badge.image} /> : badge.icon}
                   </span>
                   <span className="badge-name">{badge.name}</span>
-                  <span className="badge-description">{badge.description}</span>
                   {badge.earned ? (
                     <>
                       <span className="badge-status earned">
-                        Conseguida{badge.repeatable && badge.timesEarned > 1 ? ` ×${badge.timesEarned}` : ""}
+                        Conseguida{badge.repeatable ? ` ×${badge.timesEarned}` : ""}
                       </span>
                       {badge.repeatable && (
                         <div className="badge-progress">
