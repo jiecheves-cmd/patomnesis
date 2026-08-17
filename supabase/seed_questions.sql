@@ -193,7 +193,7 @@ begin
     insert into public.questions (stem, category, topic, difficulty, explanation, key_point, status)
     values (
       '¿Qué patrón se espera en el enfisema pulmonar?',
-      'Patología respiratoria',
+      'Patología respiratoria y torácica',
       'Enfisema',
       'intermediate',
       'El enfisema implica destrucción de paredes alveolares sin fibrosis evidente. Esto reduce el área de intercambio gaseoso y la retracción elástica.',
@@ -203,7 +203,7 @@ begin
     returning id into qid;
   else
     update public.questions
-    set category = 'Patología respiratoria',
+    set category = 'Patología respiratoria y torácica',
         topic = 'Enfisema',
         difficulty = 'intermediate',
         explanation = 'El enfisema implica destrucción de paredes alveolares sin fibrosis evidente. Esto reduce el área de intercambio gaseoso y la retracción elástica.',
