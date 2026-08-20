@@ -47,6 +47,7 @@ import {
   SupervisorDashboard,
   LeagueBoard,
   HallOfFame,
+  GlobalRanking,
   BadgesBoard
 } from "./components/index.js";
 
@@ -122,6 +123,7 @@ function App() {
   const [answers, setAnswers] = useState([]);
   const [answerHistory, setAnswerHistory] = useState([]);
   const [globalLeaderboard, setGlobalLeaderboard] = useState([]);
+  const [globalLeaderboardStatus, setGlobalLeaderboardStatus] = useState("Cargando ranking global...");
   const [studentSection, setStudentSection] = useState("inicio");
   const [weeklyLeaderboard, setWeeklyLeaderboard] = useState([]);
   const [weeklyLeaderboardStatus, setWeeklyLeaderboardStatus] = useState("Cargando clasificación...");
@@ -244,6 +246,21 @@ function App() {
     return fetchOwnAnswerHistory();
   }
 
+  async function refreshGlobalRanking() {
+    setGlobalLeaderboardStatus("Actualizando ranking...");
+    try {
+      const rows = await fetchGlobalLeaderboard();
+      setGlobalLeaderboard(rows);
+      setGlobalLeaderboardStatus(
+        rows.some((row) => row.role === "student" && row.total_answers > 0)
+          ? "Ranking actualizado."
+          : "Todavía no hay respuestas registradas."
+      );
+    } catch (error) {
+      setGlobalLeaderboardStatus(`No se pudo cargar el ranking: ${describeSupabaseError(error)}`);
+    }
+  }
+
   async function refreshLeagueBoard() {
     setWeeklyLeaderboardStatus("Actualizando clasificación...");
     try {
@@ -278,6 +295,7 @@ function App() {
     if (!isSupabaseConfigured || !supabaseUser) return;
     if (studentSection === "liga") refreshLeagueBoard();
     if (studentSection === "hall") refreshHallOfFame();
+    if (studentSection === "ranking") refreshGlobalRanking();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [studentSection]);
 
@@ -849,6 +867,13 @@ function App() {
               Hall of Fame
             </button>
             <button
+              className={studentSection === "ranking" ? "active" : ""}
+              onClick={() => setStudentSection("ranking")}
+              type="button"
+            >
+              Ranking
+            </button>
+            <button
               className={`badges-nav-trigger ${studentSection === "medallas" ? "active" : ""}`}
               onClick={() => setStudentSection("medallas")}
               type="button"
@@ -901,6 +926,13 @@ function App() {
               onRefresh={refreshHallOfFame}
               rows={weeklyLeagueHistory}
               status={weeklyHistoryStatus}
+            />
+          ) : studentSection === "ranking" ? (
+            <GlobalRanking
+              currentUser={currentUser}
+              onRefresh={refreshGlobalRanking}
+              rows={globalLeaderboard}
+              status={globalLeaderboardStatus}
             />
           ) : studentSection === "medallas" ? (
             <BadgesBoard badges={studentBadges} />
