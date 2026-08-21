@@ -90,6 +90,19 @@ const BADGES = [
       target: 60,
       secondary: { current: summary.answered, target: 20 }
     })
+  },
+  {
+    id: "precision-70",
+    group: "Precisión",
+    image: "/badges/nivel-residente-espabilado.png",
+    name: "Nivel Residente Espabilado",
+    description: "Mantén una precisión global del 70% o más (con al menos 20 preguntas respondidas).",
+    repeatable: false,
+    evaluate: ({ summary }) => ({
+      current: summary.answered >= 20 ? summary.accuracy : 0,
+      target: 70,
+      secondary: { current: summary.answered, target: 20 }
+    })
   }
 ];
 
