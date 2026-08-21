@@ -77,6 +77,19 @@ const BADGES = [
         progressLabel: `${Math.min(currentWeekQualifyingDays, 3)}/3 días esta semana`
       };
     }
+  },
+  {
+    id: "precision-60",
+    group: "Precisión",
+    image: "/badges/aprobado-raspado.png",
+    name: "Aprobado Raspado",
+    description: "Mantén una precisión global del 60% o más (con al menos 20 preguntas respondidas).",
+    repeatable: false,
+    evaluate: ({ summary }) => ({
+      current: summary.answered >= 20 ? summary.accuracy : 0,
+      target: 60,
+      secondary: { current: summary.answered, target: 20 }
+    })
   }
 ];
 
