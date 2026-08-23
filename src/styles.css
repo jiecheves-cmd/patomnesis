@@ -2772,3 +2772,107 @@ th {
 .section-tabs .badges-nav-trigger.active {
   background: linear-gradient(135deg, #f59e0b, #e11d48);
 }
+
+.flag-question-trigger {
+  align-self: flex-start;
+  margin-top: 6px;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 760;
+}
+
+.flag-question-trigger:hover {
+  background: var(--accent-soft);
+  color: var(--bad);
+}
+
+.flag-question-form {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fffefc;
+}
+
+.flag-question-form label {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 760;
+}
+
+.flag-question-form textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  resize: vertical;
+}
+
+.flag-question-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.flag-question-sent {
+  margin-top: 8px;
+  color: var(--good);
+  font-weight: 760;
+  font-size: 0.85rem;
+}
+
+.flag-question-error {
+  color: var(--bad);
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.flags-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.flags-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.flags-list-item {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fffefc;
+}
+
+.flags-list-question p {
+  margin: 6px 0 0;
+  color: var(--ink);
+  font-weight: 760;
+}
+
+.flags-list-comment {
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+}
+
+.flags-list-comment b {
+  color: var(--bad);
+  font-size: 0.82rem;
+}
+
+.flags-list-comment p {
+  margin: 4px 0 0;
+  color: var(--ink);
+}

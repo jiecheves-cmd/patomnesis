@@ -12,6 +12,10 @@ function TeacherBank({
   importMessage,
   newQuestion,
   onImportQuestions,
+  onRefreshFlags,
+  onResolveFlag,
+  openFlags,
+  openFlagsStatus,
   questions,
   saveQuestion,
   updateEditorField,
@@ -133,6 +137,16 @@ function TeacherBank({
         >
           Preguntas
         </button>
+        <button
+          className={teacherTab === "flags" ? "active" : "ghost"}
+          onClick={() => {
+            setTeacherTab("flags");
+            onRefreshFlags?.();
+          }}
+          type="button"
+        >
+          Marcadas{openFlags?.length > 0 ? ` (${openFlags.length})` : ""}
+        </button>
         <button className="ghost" onClick={() => fileInputRef.current?.click()} type="button">Importar Excel</button>
         <input
           accept=".xlsx,.xls,.csv"
@@ -148,6 +162,47 @@ function TeacherBank({
 
       {teacherTab === "stats" ? (
         <TeacherStats questions={questions} stats={bankStats} />
+      ) : teacherTab === "flags" ? (
+        <section className="panel flags-panel">
+          <div className="section-heading">
+            <h3>Preguntas marcadas por alumnos</h3>
+            <span className="table-note">{openFlagsStatus}</span>
+          </div>
+
+          {openFlags?.length ? (
+            <ul className="flags-list">
+              {openFlags.map((flag) => (
+                <li className="flags-list-item" key={flag.id}>
+                  <div className="flags-list-question">
+                    <span className="tag">{flag.questionCategory}</span>
+                    <p>{flag.questionStem}</p>
+                  </div>
+                  <div className="flags-list-comment">
+                    <b>Comentario de {flag.reporterName}:</b>
+                    <p>{flag.comment}</p>
+                  </div>
+                  <div className="draft-preview-actions">
+                    <button
+                      className="secondary"
+                      onClick={() => {
+                        const question = questions.find((item) => item.id === flag.questionId);
+                        if (question) handleEditQuestion(question);
+                      }}
+                      type="button"
+                    >
+                      Editar pregunta
+                    </button>
+                    <button onClick={() => onResolveFlag?.(flag.id)} type="button">
+                      Marcar como resuelta
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="radar-empty">No hay preguntas marcadas pendientes de revisar.</p>
+          )}
+        </section>
       ) : (
         <>
           <div className="teacher-bank-head">

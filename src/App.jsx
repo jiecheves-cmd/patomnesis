@@ -6,14 +6,17 @@ import {
   deleteQuestionFromSupabase,
   fetchAllAnswerHistory,
   fetchGlobalLeaderboard,
+  fetchOpenQuestionFlags,
   fetchOwnAnswerHistory,
   fetchAllQuestions,
   fetchWeeklyLeaderboard,
   fetchWeeklyLeagueHistory,
   finishQuizAttempt,
+  flagQuestion,
   getCurrentProfileSession,
   isSupabaseConfigured,
   recordQuizAnswer,
+  resolveQuestionFlag,
   saveQuestionToSupabase,
   sendPasswordResetEmail,
   signInWithPassword,
@@ -124,6 +127,8 @@ function App() {
   const [answerHistory, setAnswerHistory] = useState([]);
   const [globalLeaderboard, setGlobalLeaderboard] = useState([]);
   const [globalLeaderboardStatus, setGlobalLeaderboardStatus] = useState("Cargando ranking global...");
+  const [openFlags, setOpenFlags] = useState([]);
+  const [openFlagsStatus, setOpenFlagsStatus] = useState("Cargando preguntas marcadas...");
   const [studentSection, setStudentSection] = useState("inicio");
   const [weeklyLeaderboard, setWeeklyLeaderboard] = useState([]);
   const [weeklyLeaderboardStatus, setWeeklyLeaderboardStatus] = useState("Cargando clasificación...");
@@ -261,6 +266,26 @@ function App() {
     }
   }
 
+  async function refreshOpenFlags() {
+    setOpenFlagsStatus("Actualizando preguntas marcadas...");
+    try {
+      const flags = await fetchOpenQuestionFlags();
+      setOpenFlags(flags);
+      setOpenFlagsStatus(flags.length ? "" : "No hay preguntas marcadas pendientes de revisar.");
+    } catch (error) {
+      setOpenFlagsStatus(`No se pudieron cargar: ${describeSupabaseError(error)}`);
+    }
+  }
+
+  async function handleResolveFlag(flagId) {
+    try {
+      await resolveQuestionFlag(flagId);
+      setOpenFlags((previous) => previous.filter((flag) => flag.id !== flagId));
+    } catch (error) {
+      setOpenFlagsStatus(`No se pudo marcar como resuelta: ${describeSupabaseError(error)}`);
+    }
+  }
+
   async function refreshLeagueBoard() {
     setWeeklyLeaderboardStatus("Actualizando clasificación...");
     try {
@@ -364,6 +389,7 @@ function App() {
             });
           refreshLeagueBoard();
           refreshHallOfFame();
+          if (["teacher", "supervisor", "admin"].includes(auth.profile?.role)) refreshOpenFlags();
         } catch (error) {
           console.warn("No se pudo cargar el historial de respuestas", error);
         }
@@ -459,6 +485,7 @@ function App() {
       }
       refreshLeagueBoard();
       refreshHallOfFame();
+      if (["teacher", "supervisor", "admin"].includes(auth.profile?.role)) refreshOpenFlags();
     } catch (error) {
       setAuthError(describeSupabaseError(error));
     } finally {
@@ -909,6 +936,7 @@ function App() {
               nextQuestion={nextQuestion}
               onAnswer={answerQuestion}
               onExit={() => setShowQuiz(false)}
+              onFlagQuestion={isSupabaseConfigured ? flagQuestion : null}
               quizMode={quizMode}
               selectedOptionId={selectedOptionId}
               stats={stats}
@@ -972,6 +1000,10 @@ function App() {
           importMessage={importMessage}
           newQuestion={newQuestion}
           onImportQuestions={importQuestionsFromFile}
+          onRefreshFlags={refreshOpenFlags}
+          onResolveFlag={handleResolveFlag}
+          openFlags={openFlags}
+          openFlagsStatus={openFlagsStatus}
           questions={questions}
           saveQuestion={saveQuestion}
           updateEditorField={updateEditorField}

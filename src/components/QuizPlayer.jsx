@@ -1,7 +1,60 @@
-import React from "react";
+import React, { useState } from "react";
 import { difficultyLabels } from "../data/questions.js";
 import Metric from "./Metric.jsx";
 import QuestionImage from "./QuestionImage.jsx";
+
+function FlagQuestionControl({ onFlagQuestion, questionId }) {
+  const [open, setOpen] = useState(false);
+  const [comment, setComment] = useState("");
+  const [status, setStatus] = useState("idle");
+
+  if (!onFlagQuestion) return null;
+
+  if (status === "sent") {
+    return <p className="flag-question-sent">Gracias, hemos avisado al profesorado para que la revise.</p>;
+  }
+
+  if (!open) {
+    return (
+      <button className="flag-question-trigger" onClick={() => setOpen(true)} type="button">
+        ⚑ Marcar esta pregunta
+      </button>
+    );
+  }
+
+  async function submitFlag() {
+    if (!comment.trim()) return;
+    setStatus("sending");
+    try {
+      await onFlagQuestion({ comment, questionId });
+      setStatus("sent");
+    } catch (error) {
+      setStatus("error");
+    }
+  }
+
+  return (
+    <div className="flag-question-form">
+      <label htmlFor="flag-comment">¿Qué hay que revisar en esta pregunta?</label>
+      <textarea
+        id="flag-comment"
+        onChange={(event) => setComment(event.target.value)}
+        placeholder="Ej: la respuesta correcta no coincide con la explicación..."
+        rows={3}
+        value={comment}
+      />
+      {status === "error" && <p className="flag-question-error">No se pudo enviar, inténtalo de nuevo.</p>}
+      <div className="flag-question-actions">
+        <button disabled={!comment.trim() || status === "sending"} onClick={submitFlag} type="button">
+          {status === "sending" ? "Enviando..." : "Enviar"}
+        </button>
+        <button className="secondary" onClick={() => setOpen(false)} type="button">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function QuizPlayer({
   answers,
@@ -12,6 +65,7 @@ function QuizPlayer({
   nextQuestion,
   onAnswer,
   onExit,
+  onFlagQuestion,
   quizMode,
   selectedOptionId,
   stats
@@ -128,6 +182,7 @@ function QuizPlayer({
             <p>
               <b>Idea clave:</b> {currentQuestion.keyPoint}
             </p>
+            <FlagQuestionControl key={currentQuestion.id} onFlagQuestion={onFlagQuestion} questionId={currentQuestion.id} />
             <button onClick={nextQuestion} type="button">
               Siguiente
             </button>

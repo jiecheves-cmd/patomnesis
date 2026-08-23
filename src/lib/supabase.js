@@ -435,6 +435,61 @@ export async function updateQuestionStatus(questionId, status) {
   if (error) throw error;
 }
 
+export async function flagQuestion({ comment, questionId }) {
+  if (!supabase || !isUuid(questionId) || !comment?.trim()) return;
+
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { error } = await supabase
+    .from("question_flags")
+    .insert({ comment: comment.trim(), question_id: questionId, reported_by: user.id });
+
+  if (error) throw error;
+}
+
+export async function fetchOpenQuestionFlags() {
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("question_flags")
+    .select(
+      "id, comment, created_at, question_id, questions(stem, category, status), profiles!question_flags_reported_by_fkey(full_name, email)"
+    )
+    .eq("status", "open")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  return (data || []).map((row) => ({
+    id: row.id,
+    comment: row.comment,
+    createdAt: row.created_at,
+    questionId: row.question_id,
+    questionStem: row.questions?.stem || "",
+    questionCategory: row.questions?.category || "",
+    questionStatus: row.questions?.status || "",
+    reporterName: row.profiles?.full_name || row.profiles?.email || "Alguien"
+  }));
+}
+
+export async function resolveQuestionFlag(flagId) {
+  if (!supabase || !isUuid(flagId)) return;
+
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  const { error } = await supabase
+    .from("question_flags")
+    .update({ status: "resolved", resolved_at: new Date().toISOString(), resolved_by: user?.id || null })
+    .eq("id", flagId);
+
+  if (error) throw error;
+}
+
 export async function deleteQuestionFromSupabase(questionId) {
   if (!supabase || !isUuid(questionId)) return;
 
