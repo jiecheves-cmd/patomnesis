@@ -17,7 +17,7 @@ function FlagQuestionControl({ onFlagQuestion, questionId }) {
   if (!open) {
     return (
       <button className="flag-question-trigger" onClick={() => setOpen(true)} type="button">
-        ⚑ Marcar esta pregunta
+        ⚑ Reportar un error en esta pregunta
       </button>
     );
   }
@@ -35,7 +35,10 @@ function FlagQuestionControl({ onFlagQuestion, questionId }) {
 
   return (
     <div className="flag-question-form">
-      <label htmlFor="flag-comment">¿Qué hay que revisar en esta pregunta?</label>
+      <label htmlFor="flag-comment">
+        Describe el error que has detectado en el enunciado, las opciones o la explicación, para que el
+        profesorado pueda corregirlo:
+      </label>
       <textarea
         id="flag-comment"
         onChange={(event) => setComment(event.target.value)}
