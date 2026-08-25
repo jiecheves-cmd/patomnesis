@@ -359,13 +359,25 @@ export async function resetUserHistory(userId) {
 export async function fetchAllQuestions() {
   if (!supabase) return [];
 
-  const { data, error } = await supabase
-    .from("questions")
-    .select("*, question_options(*)")
-    .order("created_at", { ascending: true });
+  const pageSize = 1000;
+  const questions = [];
 
-  if (error) throw error;
-  return (data || []).map(mapQuestion);
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from("questions")
+      .select("*, question_options(*)")
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, from + pageSize - 1);
+
+    if (error) throw error;
+
+    const page = data || [];
+    questions.push(...page);
+    if (page.length < pageSize) break;
+  }
+
+  return questions.map(mapQuestion);
 }
 
 export async function saveQuestionToSupabase(question) {
