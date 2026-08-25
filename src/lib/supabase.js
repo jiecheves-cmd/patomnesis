@@ -64,6 +64,44 @@ function mapAnswerHistoryRow(row, profileMap = new Map()) {
   };
 }
 
+async function fetchAnswerHistoryRows() {
+  const pageSize = 1000;
+  const answers = [];
+
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from("quiz_answers")
+      .select(
+        `
+          id,
+          answered_at,
+          is_correct,
+          selected_option_id,
+          questions (
+            id,
+            stem,
+            category,
+            difficulty
+          ),
+          quiz_attempts (
+            student_id
+          )
+        `
+      )
+      .order("answered_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, from + pageSize - 1);
+
+    if (error) throw error;
+
+    const page = data || [];
+    answers.push(...page);
+    if (page.length < pageSize) break;
+  }
+
+  return answers;
+}
+
 async function fetchQuestionById(questionId) {
   const { data, error } = await supabase
     .from("questions")
@@ -146,28 +184,7 @@ export async function signInWithPassword({ email, password }) {
 export async function fetchOwnAnswerHistory() {
   if (!supabase) return [];
 
-  const { data, error } = await supabase
-    .from("quiz_answers")
-    .select(
-      `
-        id,
-        answered_at,
-        is_correct,
-        selected_option_id,
-        questions (
-          id,
-          stem,
-          category,
-          difficulty
-        ),
-        quiz_attempts (
-          student_id
-        )
-      `
-    )
-    .order("answered_at", { ascending: true });
-
-  if (error) throw error;
+  const data = await fetchAnswerHistoryRows();
 
   return (data || [])
     .filter((row) => row.questions)
@@ -177,31 +194,10 @@ export async function fetchOwnAnswerHistory() {
 export async function fetchAllAnswerHistory() {
   if (!supabase) return [];
 
-  const [{ data: answers, error: answersError }, profiles] = await Promise.all([
-    supabase
-      .from("quiz_answers")
-      .select(
-        `
-          id,
-          answered_at,
-          is_correct,
-          selected_option_id,
-          questions (
-            id,
-            stem,
-            category,
-            difficulty
-          ),
-          quiz_attempts (
-            student_id
-          )
-        `
-      )
-      .order("answered_at", { ascending: true }),
+  const [answers, profiles] = await Promise.all([
+    fetchAnswerHistoryRows(),
     fetchProfiles()
   ]);
-
-  if (answersError) throw answersError;
 
   const profileMap = new Map(profiles.map((profile) => [profile.id, profile]));
   return (answers || [])
