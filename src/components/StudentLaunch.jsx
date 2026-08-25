@@ -177,7 +177,12 @@ function StudentLaunch({
           </div>
           <p>Nivel {progress.level}</p>
           <h3>{progress.levelName}</h3>
-          <small>Cobertura: {progress.coverageAnswered} / {progress.coverageTotal} preguntas</small>
+          <small>
+            Cobertura: {progress.coverageAnswered} / {progress.coverageTotal} preguntas
+            {progress.coverageTotal > 0 && (
+              <> ({Math.round((progress.coverageAnswered / progress.coverageTotal) * 100)}%)</>
+            )}
+          </small>
           <small>{nextLevelText}</small>
           <small>{nextRequirementText}</small>
         </section>
